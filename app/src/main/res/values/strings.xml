@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">BITS Wi-Fi Login</string>
+    <string name="qs_label">Login</string>
+    <string name="notification_title">Auto-Login Service</string>
+    <string name="notification_message">Background service to auto-login once connected to Wi-Fi. Hide this notification.</string>
+    <string name="pref_name">dev.sparshg.bitslogin.pref</string>
+    <string name="notif">Background Service</string>
+    <string name="notiferr">Credentials not set</string>
+</resources>
