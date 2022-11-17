@@ -29,6 +29,8 @@ class MyReceiver : BroadcastReceiver() {
 //        Log.e("MyReceiver", "onReceive: isRunning")
         val isRunning = runBlocking { Store(context).service.first() }
 //        Log.e("MyReceiver", "onReceive: $isRunning")
+        context.getSharedPreferences(context.getString(R.string.pref_name), Context.MODE_PRIVATE).edit()
+            .putBoolean("enabled", false).apply()
         if (isRunning) {
             context.startService(Intent(context, MyForegroundService::class.java))
         }
