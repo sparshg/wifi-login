@@ -38,16 +38,19 @@ class MyBroadcastReceiver : BroadcastReceiver() {
                     context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                 val notificationChannel = NotificationChannel(
                     context.getString(R.string.notiferr),
-                    context.getString(R.string.notiferr), NotificationManager.IMPORTANCE_DEFAULT
+                    context.getString(R.string.notiferr),
+                    NotificationManager.IMPORTANCE_DEFAULT
                 )
                 notificationChannel.description = context.getString(R.string.notiferr)
                 notificationChannel.setSound(null, null)
                 notificationManager.createNotificationChannel(notificationChannel)
-                notificationManager.notify(2, Notification.Builder(context, context.getString(R.string.notiferr))
-                    .setContentTitle("Wi-Fi Login Credentials not set")
-                    .setContentText("Please set your username and password in the app")
-                    .setSmallIcon(R.drawable.ic_next)
-                    .build())
+                notificationManager.notify(
+                    2,
+                    Notification.Builder(context, context.getString(R.string.notiferr))
+                        .setContentTitle("Wi-Fi Login Credentials not set")
+                        .setContentText("Please set your username and password in the app")
+                        .setSmallIcon(R.drawable.ic_next).build()
+                )
 //                Toast.makeText(this.applicationContext, "Wi-Fi credentials not found", Toast.LENGTH_LONG).show()
                 return
             }
@@ -61,10 +64,9 @@ class MyBroadcastReceiver : BroadcastReceiver() {
             val stringRequest: StringRequest = object : StringRequest(Request.Method.POST,
                 "https://fw.bits-pilani.ac.in:8090/login.xml",
                 Response.Listener {
-//                    Log.e("TAG", "Volley Success")
+//                    Log.e("TAG", "Volley Successsss")
                     Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
-                    editor.putBoolean("enabled", false)
-                    editor.apply()
+                    editor.putBoolean("enabled", false).apply()
                     TileService.requestListeningState(
                         context, ComponentName(context, MyQSTileService::class.java)
                     )
@@ -73,8 +75,7 @@ class MyBroadcastReceiver : BroadcastReceiver() {
                 Response.ErrorListener {
 //                    Log.e("TAG", "Volley Error: $it")
                     Toast.makeText(context, "Login Timeout error", Toast.LENGTH_SHORT).show()
-                    editor.putBoolean("enabled", false)
-                    editor.apply()
+                    editor.putBoolean("enabled", false).apply()
                     TileService.requestListeningState(
                         context, ComponentName(context, MyQSTileService::class.java)
                     )
@@ -96,37 +97,31 @@ class MyBroadcastReceiver : BroadcastReceiver() {
                 }
             }
             stringRequest.retryPolicy = DefaultRetryPolicy(
-                DefaultRetryPolicy.DEFAULT_TIMEOUT_MS,
-                2,
-                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+                DefaultRetryPolicy.DEFAULT_TIMEOUT_MS, 2, DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
             )
-            connectivityManager.requestNetwork(networkRequest,
+            connectivityManager.requestNetwork(
+                networkRequest,
                 object : ConnectivityManager.NetworkCallback() {
                     override fun onAvailable(network: android.net.Network) {
                         super.onAvailable(network)
-                        if (VolleySingleton.isEmpty) {
-                            connectivityManager.bindProcessToNetwork(network)
-//                            val wifiManager =
-//                                context.getSystemService(Context.WIFI_SERVICE) as WifiManager
-//                            val ssid = wifiManager.connectionInfo.ssid
-//                            Log.e("TAG", "TRIGGERdoWork: $ssid")
-                            if (!pref.getBoolean(
-                                    "enabled", false
-                                )
+                        connectivityManager.bindProcessToNetwork(network)
+
+                        if (!pref.getBoolean(
+                                "enabled", false
+                            )
 //                                && ssid.equals("\"BITS-STUDENT\"") || ssid.equals("\"BITS-STAFF\"") || ssid.equals(
 //                                    "<unknown ssid>"
 //                                )
-                            ) {
-                                editor.putBoolean("enabled", true)
-                                editor.apply()
-                                TileService.requestListeningState(
-                                    context, ComponentName(context, MyQSTileService::class.java)
-                                )
-                                VolleySingleton.getInstance(context)
-                                    .addToRequestQueue(stringRequest)
-                            }
+                        ) {
+                            editor.putBoolean("enabled", true).apply()
+//                            Log.e("TAG", "enabled " + pref.getBoolean("enabled", false))
+                            VolleySingleton.getInstance(context).addToRequestQueue(stringRequest)
+//                            TileService.requestListeningState(
+//                                context, ComponentName(context, MyQSTileService::class.java)
+//                            )
                         }
                     }
+
                 })
         }
     }

@@ -8,7 +8,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
-import androidx.compose.material3.ShapeDefaults.Medium
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,9 +23,10 @@ enum class TileState {
 @Composable
 fun Tile(
     title: String,
-    desc: String,
+    desc: String? = null,
     state: TileState = TileState.INFO,
     expanded: Boolean = true,
+    altDesc: @Composable() ((Modifier) -> Unit)? = null,
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -55,7 +55,7 @@ fun Tile(
         )
     ) {
         Row(
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxSize()
                 .clickable(
                     onClick = onClick
@@ -70,12 +70,12 @@ fun Tile(
                     TileState.EXCLAMATION -> "Exclamation"
                     TileState.INFO -> "Info"
                 },
-                modifier = Modifier
+                modifier = modifier
                     .padding(20.dp)
                     .align(Alignment.CenterVertically)
             )
             Column(
-                modifier = Modifier
+                modifier = modifier
                     .align(Alignment.CenterVertically)
                     .padding(end = 16.dp)
             ) {
@@ -86,11 +86,15 @@ fun Tile(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = desc, style = MaterialTheme.typography.bodyLarge,
-                    maxLines = if (expanded) Int.MAX_VALUE else 1,
-                )
+                Spacer(modifier = modifier.height(4.dp))
+                if (altDesc != null) {
+                    altDesc(modifier)
+                } else {
+                    Text(
+                        text = desc!!, style = MaterialTheme.typography.bodyLarge,
+                        maxLines = if (expanded) Int.MAX_VALUE else 1,
+                    )
+                }
             }
         }
     }

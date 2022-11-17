@@ -34,23 +34,31 @@ class MyQSTileService : TileService() {
         scope.launch {
             Store(applicationContext).setQsAdded(true)
         }
+        getSharedPreferences(getString(R.string.pref_name), Context.MODE_PRIVATE).edit()
+            .putBoolean("enabled", false).apply()
     }
     // Called when your app can update your tile.
 
     override fun onStartListening() {
         super.onStartListening()
 //        Toast.makeText(this.applicationContext, "ON", Toast.LENGTH_SHORT).show()
-//        Log.e("TAG", "onStartListening: ")
+//        Log.e(
+//            "TAG", "onStartListening: " + this.getSharedPreferences(
+//                this.getString(R.string.pref_name), Context.MODE_PRIVATE
+//            ).getBoolean(
+//                "enabled", false
+//            )
+//        )
 //        qsTile.label = resources.getString(R.string.qs_label);
 //    qsTile.contentDescription = state.label
         qsTile.state = if (getSharedPreferences(
-                getString(R.string.pref_name),
-                Context.MODE_PRIVATE
+                getString(R.string.pref_name), Context.MODE_PRIVATE
             ).getBoolean(
-                "enabled",
-                false
+                "enabled", false
             )
         ) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
+//        Log.e("TAG", "onStartListening: " + VolleySingleton.isEmpty)
+//        qsTile.state = if (VolleySingleton.isEmpty) Tile.STATE_INACTIVE else Tile.STATE_ACTIVE
 
 //    qsTile.icon = state.icon
         qsTile.updateTile()
@@ -69,13 +77,15 @@ class MyQSTileService : TileService() {
 //        val wifiManager = this.getSystemService(Context.WIFI_SERVICE) as WifiManager
 //        val ssid = wifiManager.connectionInfo.ssid
 //        Log.e("TAG", "doWork: $ssid")
+//        pref.edit().putBoolean("enabled", false).apply()
+
         if (!pref.getBoolean(
-                "enabled",
-                false
+                "enabled", false
             )
 //            && ssid.equals("\"BITS-STUDENT\"") || ssid.equals("\"BITS-STAFF\"") || ssid.equals("<unknown ssid>")
         ) {
 //            Log.e("TAG", "onClick: ")
+            // if not connected to wifi
             val username = pref.getString("username", null)
             val password = pref.getString("password", null)
             if (username == null || password == null) {
@@ -83,32 +93,38 @@ class MyQSTileService : TileService() {
                     getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                 val notificationChannel = NotificationChannel(
                     getString(R.string.notiferr),
-                    getString(R.string.notiferr), NotificationManager.IMPORTANCE_DEFAULT
+                    getString(R.string.notiferr),
+                    NotificationManager.IMPORTANCE_DEFAULT
                 )
                 notificationChannel.description = getString(R.string.notiferr)
                 notificationChannel.setSound(null, null)
                 notificationManager.createNotificationChannel(notificationChannel)
-                notificationManager.notify(2, Notification.Builder(this, getString(R.string.notiferr))
-                    .setContentTitle("Wi-Fi Login Credentials not set")
-                    .setContentText("Please set your username and password in the app")
-                    .setSmallIcon(R.drawable.ic_next)
-                    .build())
+                notificationManager.notify(
+                    2,
+                    Notification.Builder(this, getString(R.string.notiferr))
+                        .setContentTitle("Wi-Fi Login Credentials not set")
+                        .setContentText("Please set your username and password in the app")
+                        .setSmallIcon(R.drawable.ic_next).build()
+                )
 //                Toast.makeText(this.applicationContext, "Wi-Fi credentials not found", Toast.LENGTH_LONG).show()
                 return
             }
-            val editor = pref.edit()
-            editor.putBoolean("enabled", true)
-            editor.apply()
-            qsTile.state = Tile.STATE_ACTIVE
-            qsTile.updateTile()
+            val connectivityManager =
+                this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork).let {
+                if (it == null || !it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+//                    Log.e("TAG", "onClick: not wifi")
+                    Toast.makeText(this, "Not connected to WiFi", Toast.LENGTH_LONG).show()
+                    return
+                }
+            }
             val context = this
-            val stringRequest: StringRequest = object : StringRequest(
-                Request.Method.POST, "https://fw.bits-pilani.ac.in:8090/login.xml",
+            val stringRequest: StringRequest = object : StringRequest(Request.Method.POST,
+                "https://fw.bits-pilani.ac.in:8090/login.xml",
                 Response.Listener {
-//                    Log.e("TAG", "Volley Success")
+//                    Log.e("TAG", "Volley Successd")
                     Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
-                    editor.putBoolean("enabled", false)
-                    editor.apply()
+                    pref.edit().putBoolean("enabled", false).apply()
                     VolleySingleton.isEmpty = true
                     qsTile.state = Tile.STATE_INACTIVE
                     qsTile.updateTile()
@@ -116,8 +132,7 @@ class MyQSTileService : TileService() {
                 Response.ErrorListener {
 //                    Log.e("TAG", "Volley Error: $it")
                     Toast.makeText(context, "Login Timeout error", Toast.LENGTH_SHORT).show()
-                    editor.putBoolean("enabled", false)
-                    editor.apply()
+                    pref.edit().putBoolean("enabled", false).apply()
                     VolleySingleton.isEmpty = true
                     qsTile.state = Tile.STATE_INACTIVE
                     qsTile.updateTile()
@@ -141,18 +156,19 @@ class MyQSTileService : TileService() {
                 2,
                 DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
             )
-
-            val connectivityManager =
-                this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-            val networkRequest = NetworkRequest.Builder()
-                .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
-                .build()
+            val networkRequest =
+                NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                    .build()
             connectivityManager.requestNetwork(
                 networkRequest,
                 object : ConnectivityManager.NetworkCallback() {
                     override fun onAvailable(network: android.net.Network) {
                         super.onAvailable(network)
                         if (VolleySingleton.isEmpty) {
+                            pref.edit().putBoolean("enabled", true).apply()
+                            qsTile.state = Tile.STATE_ACTIVE
+                            qsTile.updateTile()
+
                             connectivityManager.bindProcessToNetwork(network)
 //                            Log.e("TAG", network.toString())
                             VolleySingleton.getInstance(context).addToRequestQueue(stringRequest)
@@ -161,7 +177,6 @@ class MyQSTileService : TileService() {
                 })
         }
     }
-
 
     // Called when the user removes your tile.
     override fun onTileRemoved() {

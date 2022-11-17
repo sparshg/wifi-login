@@ -12,13 +12,13 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.Crossfade
 import androidx.compose.animation.ExperimentalAnimationApi
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -26,12 +26,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,8 +47,6 @@ import com.google.android.play.core.review.ReviewManagerFactory
 import dev.sparshg.bitslogin.ui.theme.MyApplicationTheme
 import kotlinx.coroutines.launch
 
-
-data class UserPreferences(val showCompleted: Boolean)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,7 +67,7 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun Content() {
+fun Content(modifier: Modifier = Modifier) {
 //    Log.e("TAG", "CONTENT")
     val openDialog = remember { mutableStateOf(false) }
     val openDialog2 = remember { mutableStateOf(false) }
@@ -92,7 +94,7 @@ fun Content() {
     }
 
     Surface(
-        modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
+        modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background
     ) {
         if (openDialog.value) {
             var username by remember { mutableStateOf("") }
@@ -106,18 +108,16 @@ fun Content() {
                 },
                 text = {
                     Column {
-                        OutlinedTextField(
-                            value = username,
+                        OutlinedTextField(value = username,
                             onValueChange = { username = it },
                             label = { Text("Username") },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = modifier.fillMaxWidth()
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = password,
+                        Spacer(modifier = modifier.height(8.dp))
+                        OutlinedTextField(value = password,
                             onValueChange = { password = it },
                             label = { Text("Password") },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = modifier.fillMaxWidth()
                         )
                     }
                 },
@@ -128,8 +128,11 @@ fun Content() {
                             scope.launch {
                                 dataStore.setCredSet(true)
                             }
+                            VolleySingleton.getInstance(context).cancelAll()
                             prefs.edit().putString("username", username)
-                                .putString("password", password).apply()
+                                .putString("password", password)
+                                .putBoolean("enabled", false)
+                                .apply()
                         }
                     }) {
                         Text("Confirm")
@@ -159,30 +162,31 @@ fun Content() {
             }, text = {
                 AnimatedContent(targetState = page) { state ->
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = when (state) {
-                            0 -> "Open notifications panel and go to edit mode."
-                            1 -> "Drag the app tile to the top."
-                            2 -> "Click when connected to Wi-Fi and wait for it to deactivate."
-                            else -> ""
-                        },
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
-                    Image(
-                        painter = painterResource(
-                            id = when (state) {
-                                0 -> R.drawable.screenshot_1
-                                1 -> R.drawable.screenshot_2
-                                2 -> R.drawable.screenshot_3
-                                else -> R.drawable.screenshot_3
-                            }
-                        ),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10))
-                            .fillMaxWidth()
-                    )}
+                        Text(
+                            text = when (state) {
+                                0 -> "Open notifications panel and go to edit mode."
+                                1 -> "Drag the app tile to the top."
+                                2 -> "Click when connected to Wi-Fi and wait for it to deactivate."
+                                else -> ""
+                            },
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = modifier.padding(bottom = 16.dp)
+                        )
+                        Image(
+                            painter = painterResource(
+                                id = when (state) {
+                                    0 -> R.drawable.screenshot_1
+                                    1 -> R.drawable.screenshot_2
+                                    2 -> R.drawable.screenshot_3
+                                    else -> R.drawable.screenshot_3
+                                }
+                            ),
+                            contentDescription = null,
+                            modifier = modifier
+                                .clip(RoundedCornerShape(10))
+                                .fillMaxWidth()
+                        )
+                    }
 
 
                 }
@@ -205,14 +209,14 @@ fun Content() {
                 }
             })
         }
-        Column(Modifier.fillMaxSize()) {
-            LazyColumn(Modifier.weight(1f)) {
+        Column(modifier.fillMaxSize()) {
+            LazyColumn(modifier.weight(1f)) {
                 item {
                     Text(
                         text = "BITS Wi-Fi Login",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(start = 20.dp, top = 80.dp, bottom = 24.dp)
+                        modifier = modifier.padding(start = 20.dp, top = 80.dp, bottom = 24.dp)
                     )
                 }
                 item {
@@ -247,7 +251,7 @@ fun Content() {
                                 })
                         } else {
                             Tile("Auto-Login Service: Running",
-                                "Hide the service notification by long pressing it. Use quick tile to one-tap login in case auto-login fails",
+                                "Hide the service notification by long pressing it.",
                                 TileState.TICKED,
                                 onClick = {
                                     scope.launch {
@@ -265,12 +269,12 @@ fun Content() {
                     if (isQsAdded.value) {
                         Tile(
                             "Quick Tile added",
-                            "Tap the quick tile to login without further interaction in case auto-login service is off/fails",
+                            "Tap quick tile to login without further interaction, if auto-login service is off/fails",
                             TileState.TICKED,
                         )
                     } else {
                         Tile("Login Quick Tile not added",
-                            "Tap the quick tile to login without further interaction in case auto-login service is off/fails",
+                            "Tap quick tile to login without further interaction, if auto-login service is off/fails",
                             TileState.EXCLAMATION,
                             onClick = {
                                 openDialog2.value = true
@@ -282,20 +286,42 @@ fun Content() {
                         text = "Tips",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(start = 20.dp, top = 24.dp, bottom = 24.dp)
+                        modifier = modifier.padding(start = 20.dp, top = 24.dp, bottom = 24.dp)
                     )
                 }
                 item {
-                    Tile(title = "About service", desc = "You can stop the service from running in background when outside campus to save resources", state = TileState.INFO)
+
+                    Tile(
+                        title = "About service", altDesc = {
+                            UrlDesc(
+                                it,
+                                "Disable battery optimization for this app if the service gets killed, see this.",
+                                70,
+                                78,
+                                "https://dontkillmyapp.com"
+                            )
+                        }, state = TileState.INFO
+                    )
                 }
                 item {
-                    Tile(title = "About your data", desc = "Your credentials remain on your device, you can check IPs of devices that connected using your credentials from the user portal", state = TileState.INFO)
+                    Tile(
+                        title = "About your data",
+                        desc = "Your credentials remain on your device, you can check IPs of devices that connected using your credentials from the user portal",
+                        state = TileState.INFO
+                    )
                 }
                 item {
-                    Tile(title = "Rate the app", desc = "Rate the app on play store if you liked it", state = TileState.INFO)
+                    Tile(title = "Rate the app",
+                        desc = "Rate the app on play store if you liked it",
+                        state = TileState.INFO,
+                        onClick = {
+                            scope.launch {
+                                openReview.value = !openReview.value
+                            }
+                        })
                 }
                 item {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = modifier.height(16.dp))
                 }
             }
             BottomAppBar(actions = {
@@ -321,14 +347,17 @@ fun Content() {
                 IconButton(onClick = {
                     openReview.value = true
                 }) {
-                    Icon(Icons.Filled.Star, contentDescription = "Playstore", modifier = Modifier.size(28.dp))
+                    Icon(
+                        Icons.Filled.Star,
+                        contentDescription = "Playstore",
+                        modifier = modifier.size(28.dp)
+                    )
                 }
             }, floatingActionButton = {
                 ExtendedFloatingActionButton(
                     onClick = {
                         val intent = Intent(Intent.ACTION_SENDTO).apply {
-                            data = Uri.parse("mailto:")
-                            putExtra(Intent.EXTRA_EMAIL, "sparshg.contact@gmail.com")
+                            data = Uri.parse("mailto:sparshg.contact@gmail.com")
                         }
                         try {
                             context.startActivity(intent)
@@ -348,20 +377,46 @@ fun Content() {
                     )
             })
 
-//            Row(
-//                Modifier
-//                    .fillMaxWidth()
-//                    .padding(vertical = 16.dp, horizontal = 24.dp)
-//            ) {
-//                ContactButton(title = "LINKEDIN", icon = Icons.Filled.MailOutline, uri = "https://google.com")
-//                Spacer(modifier = Modifier.width(8.dp))
-//                ContactButton(title = "GITHUB", icon = Icons.Filled.MailOutline, uri = "https://google.com")
-//                Spacer(modifier = Modifier.width(8.dp))
-//                ContactButton(title = "MAIL", icon = Icons.Filled.MailOutline, uri = "https://google.com")
-//            }
-
         }
     }
+}
+
+@Composable
+fun UrlDesc(
+    modifier: Modifier = Modifier, desc: String, startIndex: Int, endIndex: Int, url: String
+) {
+    val annotatedLinkString: AnnotatedString = buildAnnotatedString {
+        append(desc)
+        addStyle(
+            style = SpanStyle(
+                color = MaterialTheme.colorScheme.onTertiaryContainer
+            ), start = 0, end = desc.length
+        )
+        addStyle(
+            style = SpanStyle(
+                color = Color(0xff64B5F6),
+//                fontSize = 18.sp,
+                textDecoration = TextDecoration.Underline
+            ), start = startIndex, end = endIndex
+        )
+        addStringAnnotation(
+            tag = "URL", annotation = url, start = startIndex, end = endIndex
+        )
+    }
+
+// UriHandler parse and opens URI inside AnnotatedString Item in Browse
+    val uriHandler = LocalUriHandler.current
+
+// 🔥 Clickable text returns position of text that is clicked in onClick callback
+    ClickableText(modifier = modifier,
+        text = annotatedLinkString,
+        style = MaterialTheme.typography.bodyLarge,
+        onClick = {
+            annotatedLinkString.getStringAnnotations("URL", it, it).firstOrNull()
+                ?.let { stringAnnotation ->
+                    uriHandler.openUri(stringAnnotation.item)
+                }
+        })
 }
 
 @Composable
