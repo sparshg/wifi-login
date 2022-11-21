@@ -4,24 +4,17 @@ import android.app.*
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
-import android.net.NetworkRequest
 import android.net.wifi.WifiManager
-import android.os.Build
 import android.os.IBinder
-import android.service.quicksettings.Tile
-import android.util.Log
-import android.widget.Toast
-import androidx.annotation.RequiresApi
-import com.android.volley.DefaultRetryPolicy
-import com.android.volley.Request
-import com.android.volley.Response
-import com.android.volley.toolbox.StringRequest
+import androidx.core.content.ContextCompat.registerReceiver
 
 
-class MyForegroundService : Service() {
+class LoginService : Service() {
+
     private lateinit var receiver: MyBroadcastReceiver
+    companion object {
+        var IS_RUNNING = false
+    }
     override fun onCreate() {
         super.onCreate()
         receiver = MyBroadcastReceiver()
@@ -33,6 +26,7 @@ class MyForegroundService : Service() {
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
 //        Log.e("TAG", "onStartCommand: ")
+        IS_RUNNING = true
         val pendingIntent: PendingIntent =
             Intent(this, MainActivity::class.java).let { notificationIntent ->
                 PendingIntent.getActivity(
@@ -66,6 +60,7 @@ class MyForegroundService : Service() {
     override fun onDestroy() {
         super.onDestroy()
 //        Log.e("TAG", "onDestroy: ")
+        IS_RUNNING = false
         unregisterReceiver(receiver)
     }
 

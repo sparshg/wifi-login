@@ -6,4 +6,5 @@
     <string name="pref_name">dev.sparshg.bitslogin.pref</string>
     <string name="notif">Background Service</string>
     <string name="notiferr">Credentials not set</string>
+    <string name="notiferr2">Service killed</string>
 </resources>
