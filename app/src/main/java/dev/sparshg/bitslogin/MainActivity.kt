@@ -11,6 +11,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -38,6 +39,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -76,6 +78,9 @@ fun Content(modifier: Modifier = Modifier) {
 //    Log.e("TAG", "CONTENT")
     val openDialog = remember { mutableStateOf(false) }
     val openDialog2 = remember { mutableStateOf(false) }
+    val openDialogF1 = remember { mutableStateOf(false) }
+    val openDialogF2 = remember { mutableStateOf(false) }
+    val openDialogF3 = remember { mutableStateOf(false) }
     val openReview = remember { mutableStateOf(false) }
     val context = LocalContext.current
     val dataStore = Store(context)
@@ -83,6 +88,7 @@ fun Content(modifier: Modifier = Modifier) {
         ReviewManagerFactory.create(context)
     }
     val reviewInfo = rememberReviewTask(reviewManager)
+//    Log.e("TAG", "reviewInfo: $reviewInfo")
     val scope = rememberCoroutineScope()
     val pm = context.getSystemService(POWER_SERVICE) as PowerManager
     val isIgnoringBatteryOptimizations = remember {
@@ -96,6 +102,7 @@ fun Content(modifier: Modifier = Modifier) {
     val isCredSet = dataStore.credSet.collectAsState(initial = false)
     val isQsAdded = dataStore.qsAdded.collectAsState(initial = false)
     val isServiceRunning = dataStore.service.collectAsState(initial = false)
+    val lastReviewed = dataStore.review.collectAsState(initial = System.currentTimeMillis())
     val uriHandler = LocalUriHandler.current
     if (isServiceRunning.value) {
         val intent = Intent(context, LoginService::class.java)
@@ -167,8 +174,17 @@ fun Content(modifier: Modifier = Modifier) {
         if (openReview.value) {
             openReview.value = false
             LaunchedEffect(key1 = reviewInfo) {
-                reviewInfo?.let {
-                    reviewManager.launchReviewFlow(context as Activity, reviewInfo)
+                if (lastReviewed.value < System.currentTimeMillis() - 2678400.toLong()) {
+                    scope.launch {
+                        dataStore.setReview(System.currentTimeMillis())
+                    }
+                    reviewInfo?.let {
+//                        Log.e("TAG", "reviewInfo: $reviewInfo")
+                        reviewManager.launchReviewFlow(context as Activity, reviewInfo)
+                    }
+                } else {
+                    uriHandler.openUri("https://play.google.com/store/apps/details?id=dev.sparshg.bitslogin")
+                    Toast.makeText(context, "Rate the app if you liked!", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -275,8 +291,7 @@ fun Content(modifier: Modifier = Modifier) {
                                 onClick = {
                                     scope.launch {
                                         dataStore.setService(false)
-                                        val intent =
-                                            Intent(context, LoginService::class.java)
+                                        val intent = Intent(context, LoginService::class.java)
                                         context.stopService(intent)
                                     }
                                 })
@@ -303,7 +318,7 @@ fun Content(modifier: Modifier = Modifier) {
                 item {
                     if (!isIgnoringBatteryOptimizations.value) {
                         Tile(title = "Disable Battery Optimization",
-                            "Auto-Login won't work if app is killed by system.",
+                            "Auto-Login won't work if service is killed by system.",
                             state = TileState.CROSS,
                             onClick = {
                                 Toast.makeText(
@@ -322,23 +337,102 @@ fun Content(modifier: Modifier = Modifier) {
                 }
                 item {
                     Text(
-                        text = "Tips",
+                        text = "FAQs",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Medium,
                         modifier = modifier.padding(start = 20.dp, top = 24.dp, bottom = 24.dp)
                     )
                 }
-
                 item {
-                    Tile(
-                        title = "About your data",
-                        desc = "Your credentials remain on your device, IPs of devices using your credentials are listed on the user portal",
-                        state = TileState.INFO
-                    )
+                    Tile(title = "How to use this?", state = TileState.INFO, onClick = {
+                        openDialogF1.value = true
+                    })
                 }
+                item {
+                    Tile(title = "But what about my credentials?",
+                        state = TileState.INFO,
+                        onClick = {
+                            openDialogF2.value = true
+                        })
+                }
+                item {
+                    Tile(title = "And what about battery drain?",
+                        state = TileState.INFO,
+                        onClick = {
+                            openDialogF3.value = true
+                        })
+                }
+
                 item {
                     Spacer(modifier = modifier.height(16.dp))
                 }
+            }
+            if (openDialogF1.value) {
+                AlertDialog(onDismissRequest = {
+                    openDialogF1.value = false
+                },
+                    icon = { Icon(Icons.Filled.Info, contentDescription = "How to use") },
+                    title = {
+                        Text("How to use")
+                    },
+                    text = {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("Once the app setup is done, forget it, background service handles everything automatically.", style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
+                            Spacer(modifier = modifier.height(16.dp))
+                            Text("If the service is off or killed, tap the quick tile to login automatically. (follow battery optimization steps to prevent killing).", style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
+                            Spacer(modifier = modifier.height(16.dp))
+                            Text("You can turn the service off when outside campus for several days.", style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
+
+                        }
+
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            openDialogF1.value = false
+                        }) {
+                            Text("OK")
+                        }
+                    })
+            }
+            if (openDialogF2.value) {
+                AlertDialog(onDismissRequest = {
+                    openDialogF2.value = false
+                },
+                    icon = { Icon(Icons.Filled.Info, contentDescription = "About data") },
+                    title = {
+                        Text("Data stored on device")
+                    },
+                    text = {
+                        Text("Your credentials remain on your device. You can check the device IPs, that connected using your credentials from the user portal.", style = MaterialTheme.typography.bodyLarge)
+
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            openDialogF2.value = false
+                        }) {
+                            Text("OK")
+                        }
+                    })
+            }
+            if (openDialogF3.value) {
+                AlertDialog(onDismissRequest = {
+                    openDialogF3.value = false
+                },
+                    icon = { Icon(Icons.Filled.Info, contentDescription = "About battery") },
+                    title = {
+                        Text("Negligible Battery Drain")
+                    },
+                    text = {
+                        Text("Background service only takes about 10MB memory, and is triggered only when Wi-Fi connects", style = MaterialTheme.typography.bodyLarge)
+
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            openDialogF3.value = false
+                        }) {
+                            Text("OK")
+                        }
+                    })
             }
             BottomAppBar(actions = {
                 IconButton(onClick = { uriHandler.openUri("https://github.com/sparshg") }) {
@@ -395,44 +489,6 @@ fun Content(modifier: Modifier = Modifier) {
 
         }
     }
-}
-
-@Composable
-fun UrlDesc(
-    modifier: Modifier = Modifier, desc: String, startIndex: Int, endIndex: Int, url: String
-) {
-    val annotatedLinkString: AnnotatedString = buildAnnotatedString {
-        append(desc)
-        addStyle(
-            style = SpanStyle(
-                color = MaterialTheme.colorScheme.onTertiaryContainer
-            ), start = 0, end = desc.length
-        )
-        addStyle(
-            style = SpanStyle(
-                color = Color(0xff64B5F6),
-//                fontSize = 18.sp,
-                textDecoration = TextDecoration.Underline
-            ), start = startIndex, end = endIndex
-        )
-        addStringAnnotation(
-            tag = "URL", annotation = url, start = startIndex, end = endIndex
-        )
-    }
-
-// UriHandler parse and opens URI inside AnnotatedString Item in Browse
-    val uriHandler = LocalUriHandler.current
-
-// 🔥 Clickable text returns position of text that is clicked in onClick callback
-    ClickableText(modifier = modifier,
-        text = annotatedLinkString,
-        style = MaterialTheme.typography.bodyLarge,
-        onClick = {
-            annotatedLinkString.getStringAnnotations("URL", it, it).firstOrNull()
-                ?.let { stringAnnotation ->
-                    uriHandler.openUri(stringAnnotation.item)
-                }
-        })
 }
 
 @Composable
