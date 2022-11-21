@@ -2,10 +2,7 @@ package dev.sparshg.bitslogin
 
 import android.content.Context
 import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -18,6 +15,7 @@ class Store(private val context: Context) {
         val CREDSET = booleanPreferencesKey("credSet")
         val QSADDED = booleanPreferencesKey("qsAdded")
         val SERVICE = booleanPreferencesKey("service")
+        val REVIEW = longPreferencesKey("review")
     }
 
     val credSet: Flow<Boolean> = context.dataStore.data
@@ -31,6 +29,10 @@ class Store(private val context: Context) {
     val service: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
             preferences[SERVICE] ?: false
+        }
+    val review: Flow<Long> = context.dataStore.data
+        .map { preferences ->
+            preferences[REVIEW] ?: System.currentTimeMillis()
         }
 
     suspend fun setCredSet(isSet: Boolean) {
@@ -46,6 +48,11 @@ class Store(private val context: Context) {
     suspend fun setService(service: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[SERVICE] = service
+        }
+    }
+    suspend fun setReview(review: Long) {
+        context.dataStore.edit { preferences ->
+            preferences[REVIEW] = review
         }
     }
 }

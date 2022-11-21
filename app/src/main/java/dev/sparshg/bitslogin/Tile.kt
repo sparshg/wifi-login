@@ -26,7 +26,6 @@ fun Tile(
     desc: String? = null,
     state: TileState = TileState.INFO,
     expanded: Boolean = true,
-    altDesc: @Composable() ((Modifier) -> Unit)? = null,
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
@@ -60,7 +59,7 @@ fun Tile(
                 .clickable(
                     onClick = onClick
                 )
-                .padding(vertical = 20.dp),
+                .padding(vertical = if (desc == null) 0.dp else 18.dp),
         ) {
             Icon(
                 imageVector = icon,
@@ -87,11 +86,9 @@ fun Tile(
                     overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = modifier.height(4.dp))
-                if (altDesc != null) {
-                    altDesc(modifier)
-                } else {
+                if (desc != null) {
                     Text(
-                        text = desc!!, style = MaterialTheme.typography.bodyLarge,
+                        text = desc, style = MaterialTheme.typography.bodyLarge,
                         maxLines = if (expanded) Int.MAX_VALUE else 1,
                     )
                 }
