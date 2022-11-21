@@ -46,7 +46,7 @@
                 android:name="android.service.quicksettings.ACTIVE_TILE"
                 android:value="true" />
         </service>
-        <service android:name=".MyForegroundService" android:process=":process"/>
+        <service android:name=".LoginService" android:process=":process"/>
         <receiver android:name=".MyReceiver" android:enabled="true" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>

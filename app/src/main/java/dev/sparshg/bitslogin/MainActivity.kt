@@ -5,16 +5,18 @@ package dev.sparshg.bitslogin
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Context.MODE_PRIVATE
+import android.content.Context.POWER_SERVICE
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.util.Log
+import android.os.PowerManager
+import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
@@ -38,8 +41,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat.getDrawable
+import androidx.core.content.ContextCompat.*
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import com.google.android.play.core.review.ReviewInfo
 import com.google.android.play.core.review.ReviewManager
@@ -79,6 +84,10 @@ fun Content(modifier: Modifier = Modifier) {
     }
     val reviewInfo = rememberReviewTask(reviewManager)
     val scope = rememberCoroutineScope()
+    val pm = context.getSystemService(POWER_SERVICE) as PowerManager
+    val isIgnoringBatteryOptimizations = remember {
+        mutableStateOf(pm.isIgnoringBatteryOptimizations(context.packageName))
+    }
     val prefs = remember {
         context.getSharedPreferences(
             context.getString(R.string.pref_name), MODE_PRIVATE
@@ -89,8 +98,18 @@ fun Content(modifier: Modifier = Modifier) {
     val isServiceRunning = dataStore.service.collectAsState(initial = false)
     val uriHandler = LocalUriHandler.current
     if (isServiceRunning.value) {
-        val intent = Intent(context, MyForegroundService::class.java)
+        val intent = Intent(context, LoginService::class.java)
         context.startForegroundService(intent)
+    }
+
+    OnLifecycleEvent { _, event ->
+        when (event) {
+            Lifecycle.Event.ON_RESUME -> {
+                isIgnoringBatteryOptimizations.value =
+                    pm.isIgnoringBatteryOptimizations(context.packageName)
+            }
+            else -> {}
+        }
     }
 
     Surface(
@@ -129,9 +148,8 @@ fun Content(modifier: Modifier = Modifier) {
                                 dataStore.setCredSet(true)
                             }
                             VolleySingleton.getInstance(context).cancelAll()
-                            prefs.edit().putString("username", username)
-                                .putString("password", password)
-                                .putBoolean("enabled", false)
+                            prefs.edit().putString("username", username.trim())
+                                .putString("password", password.trim()).putBoolean("enabled", false)
                                 .apply()
                         }
                     }) {
@@ -147,6 +165,7 @@ fun Content(modifier: Modifier = Modifier) {
                 })
         }
         if (openReview.value) {
+            openReview.value = false
             LaunchedEffect(key1 = reviewInfo) {
                 reviewInfo?.let {
                     reviewManager.launchReviewFlow(context as Activity, reviewInfo)
@@ -230,7 +249,7 @@ fun Content(modifier: Modifier = Modifier) {
                                 })
                         } else {
                             Tile("Wi-Fi Login Credentials",
-                                "Your login credentials are set. Click to update",
+                                "Click to update.",
                                 TileState.TICKED,
                                 onClick = {
                                     openDialog.value = true
@@ -242,7 +261,7 @@ fun Content(modifier: Modifier = Modifier) {
                     AnimatedContent(targetState = isServiceRunning.value) {
                         if (!it) {
                             Tile("Auto-Login Service: Stopped",
-                                "Login automatically once connected to Wi-Fi without any user interaction",
+                                "Login automatically once connected to Wi-Fi.",
                                 TileState.EXCLAMATION,
                                 onClick = {
                                     scope.launch {
@@ -251,13 +270,13 @@ fun Content(modifier: Modifier = Modifier) {
                                 })
                         } else {
                             Tile("Auto-Login Service: Running",
-                                "Hide the service notification by long pressing it.",
+                                "Hide the service notification.",
                                 TileState.TICKED,
                                 onClick = {
                                     scope.launch {
                                         dataStore.setService(false)
                                         val intent =
-                                            Intent(context, MyForegroundService::class.java)
+                                            Intent(context, LoginService::class.java)
                                         context.stopService(intent)
                                     }
                                 })
@@ -269,16 +288,36 @@ fun Content(modifier: Modifier = Modifier) {
                     if (isQsAdded.value) {
                         Tile(
                             "Quick Tile added",
-                            "Tap quick tile to login without further interaction, if auto-login service is off/fails",
+                            "Tap it to login, in-case your device decided to kill the service...",
                             TileState.TICKED,
                         )
                     } else {
                         Tile("Login Quick Tile not added",
-                            "Tap quick tile to login without further interaction, if auto-login service is off/fails",
+                            "Tap it to login, in-case your device decided to kill the service...",
                             TileState.EXCLAMATION,
                             onClick = {
                                 openDialog2.value = true
                             })
+                    }
+                }
+                item {
+                    if (!isIgnoringBatteryOptimizations.value) {
+                        Tile(title = "Disable Battery Optimization",
+                            "Auto-Login won't work if app is killed by system.",
+                            state = TileState.CROSS,
+                            onClick = {
+                                Toast.makeText(
+                                    context,
+                                    "Please disable battery optimization for this app.",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                                context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+                            })
+                    } else {
+                        Tile(title = "Disable Battery Optimization",
+                            "Click to follow more device specific steps.",
+                            state = TileState.EXCLAMATION,
+                            onClick = { uriHandler.openUri("https://dontkillmyapp.com") })
                     }
                 }
                 item {
@@ -289,36 +328,13 @@ fun Content(modifier: Modifier = Modifier) {
                         modifier = modifier.padding(start = 20.dp, top = 24.dp, bottom = 24.dp)
                     )
                 }
-                item {
 
-                    Tile(
-                        title = "About service", altDesc = {
-                            UrlDesc(
-                                it,
-                                "Disable battery optimization for this app if the service gets killed, see this.",
-                                70,
-                                78,
-                                "https://dontkillmyapp.com"
-                            )
-                        }, state = TileState.INFO
-                    )
-                }
                 item {
                     Tile(
                         title = "About your data",
-                        desc = "Your credentials remain on your device, you can check IPs of devices that connected using your credentials from the user portal",
+                        desc = "Your credentials remain on your device, IPs of devices using your credentials are listed on the user portal",
                         state = TileState.INFO
                     )
-                }
-                item {
-                    Tile(title = "Rate the app",
-                        desc = "Rate the app on play store if you liked it",
-                        state = TileState.INFO,
-                        onClick = {
-                            scope.launch {
-                                openReview.value = !openReview.value
-                            }
-                        })
                 }
                 item {
                     Spacer(modifier = modifier.height(16.dp))
@@ -432,6 +448,25 @@ fun rememberReviewTask(reviewManager: ReviewManager): ReviewInfo? {
 
     return reviewInfo
 }
+
+@Composable
+fun OnLifecycleEvent(onEvent: (owner: LifecycleOwner, event: Lifecycle.Event) -> Unit) {
+    val eventHandler = rememberUpdatedState(onEvent)
+    val lifecycleOwner = rememberUpdatedState(LocalLifecycleOwner.current)
+
+    DisposableEffect(lifecycleOwner.value) {
+        val lifecycle = lifecycleOwner.value.lifecycle
+        val observer = LifecycleEventObserver { owner, event ->
+            eventHandler.value(owner, event)
+        }
+
+        lifecycle.addObserver(observer)
+        onDispose {
+            lifecycle.removeObserver(observer)
+        }
+    }
+}
+
 
 @Preview(showBackground = true)
 @Composable

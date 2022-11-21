@@ -1,5 +1,6 @@
 package dev.sparshg.bitslogin
 
+import android.app.ActivityManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -8,19 +9,18 @@ import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import android.net.wifi.WifiManager
+import android.os.PowerManager
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.core.content.ContextCompat.getSystemService
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleCoroutineScope
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.Request
 import com.android.volley.Response
 import com.android.volley.toolbox.StringRequest
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.first
 
 
 class MyQSTileService : TileService() {
@@ -86,6 +86,7 @@ class MyQSTileService : TileService() {
         ) {
 //            Log.e("TAG", "onClick: ")
             // if not connected to wifi
+            val context = this
             val username = pref.getString("username", null)
             val password = pref.getString("password", null)
             if (username == null || password == null) {
@@ -109,16 +110,14 @@ class MyQSTileService : TileService() {
 //                Toast.makeText(this.applicationContext, "Wi-Fi credentials not found", Toast.LENGTH_LONG).show()
                 return
             }
-            val connectivityManager =
-                this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-            connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork).let {
-                if (it == null || !it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-//                    Log.e("TAG", "onClick: not wifi")
-                    Toast.makeText(this, "Not connected to WiFi", Toast.LENGTH_LONG).show()
-                    return
-                }
+
+            val wifi = getSystemService(WIFI_SERVICE) as WifiManager
+            if (!wifi.isWifiEnabled) {
+//                    Log.e("TAG", "onClick: not wifi " + it.toString())
+                Toast.makeText(this, "Wi-Fi not connected", Toast.LENGTH_LONG).show()
+                return
             }
-            val context = this
+
             val stringRequest: StringRequest = object : StringRequest(Request.Method.POST,
                 "https://fw.bits-pilani.ac.in:8090/login.xml",
                 Response.Listener {
@@ -152,15 +151,14 @@ class MyQSTileService : TileService() {
                 }
             }
             stringRequest.retryPolicy = DefaultRetryPolicy(
-                DefaultRetryPolicy.DEFAULT_TIMEOUT_MS,
-                2,
-                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+                DefaultRetryPolicy.DEFAULT_TIMEOUT_MS, 1, DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
             )
             val networkRequest =
                 NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
                     .build()
-            connectivityManager.requestNetwork(
-                networkRequest,
+            val connectivityManager =
+                this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            connectivityManager.requestNetwork(networkRequest,
                 object : ConnectivityManager.NetworkCallback() {
                     override fun onAvailable(network: android.net.Network) {
                         super.onAvailable(network)
@@ -168,13 +166,38 @@ class MyQSTileService : TileService() {
                             pref.edit().putBoolean("enabled", true).apply()
                             qsTile.state = Tile.STATE_ACTIVE
                             qsTile.updateTile()
-
+////
                             connectivityManager.bindProcessToNetwork(network)
 //                            Log.e("TAG", network.toString())
                             VolleySingleton.getInstance(context).addToRequestQueue(stringRequest)
                         }
                     }
                 })
+
+            val isRunning = runBlocking { Store(context).service.first() }
+            if (isRunning) {
+                try {
+                    context.startForegroundService(Intent(context, LoginService::class.java))
+                } catch (e: Exception) {
+                    val notificationManager =
+                        getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    val notificationChannel = NotificationChannel(
+                        getString(R.string.notiferr2),
+                        getString(R.string.notiferr2),
+                        NotificationManager.IMPORTANCE_DEFAULT
+                    )
+                    notificationChannel.description = getString(R.string.notiferr2)
+                    notificationChannel.setSound(null, null)
+                    notificationManager.createNotificationChannel(notificationChannel)
+                    notificationManager.notify(
+                        3,
+                        Notification.Builder(this, getString(R.string.notiferr2))
+                            .setContentTitle("Auto-Login Service is killed")
+                            .setContentText("Re-open the app to run the service and disable battery optimizations. Device specific instructions are available in the app.")
+                            .setSmallIcon(R.drawable.ic_next).build()
+                    )
+                }
+            }
         }
     }
 

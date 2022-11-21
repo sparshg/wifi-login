@@ -106,13 +106,14 @@ class MyBroadcastReceiver : BroadcastReceiver() {
                         super.onAvailable(network)
                         connectivityManager.bindProcessToNetwork(network)
 
-                        if (!pref.getBoolean(
-                                "enabled", false
-                            )
+//                        if (!pref.getBoolean(
+//                                "enabled", false
+//                            )
 //                                && ssid.equals("\"BITS-STUDENT\"") || ssid.equals("\"BITS-STAFF\"") || ssid.equals(
 //                                    "<unknown ssid>"
 //                                )
-                        ) {
+//                        ) {
+                        if (VolleySingleton.isEmpty) {
                             editor.putBoolean("enabled", true).apply()
 //                            Log.e("TAG", "enabled " + pref.getBoolean("enabled", false))
                             VolleySingleton.getInstance(context).addToRequestQueue(stringRequest)
