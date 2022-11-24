@@ -8,20 +8,20 @@ import android.content.Context.MODE_PRIVATE
 import android.content.Context.POWER_SERVICE
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -29,18 +29,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat.*
@@ -48,6 +43,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.shouldShowRationale
 import com.google.android.play.core.review.ReviewInfo
 import com.google.android.play.core.review.ReviewManager
 import com.google.android.play.core.review.ReviewManagerFactory
@@ -60,19 +59,37 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MyApplicationTheme {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    CheckNotifPermission()
+                }
                 Content()
             }
         }
     }
-
-//    override fun onStop() {
-//        super.onStop()
-//        Log.e("TAG", "onStop")
-//        exitProcess(0)
-//    }
 }
 
-@OptIn(ExperimentalAnimationApi::class)
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+@OptIn(ExperimentalPermissionsApi::class)
+@Composable
+fun CheckNotifPermission() {
+    val notifPermState = rememberPermissionState(
+        android.Manifest.permission.POST_NOTIFICATIONS
+    )
+    if (!notifPermState.status.isGranted) {
+        if (notifPermState.status.shouldShowRationale) {
+            Toast.makeText(
+                LocalContext.current,
+                "Notifications are denied for whole app instead of just the service.",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+        LaunchedEffect(notifPermState) {
+            notifPermState.launchPermissionRequest()
+        }
+    }
+}
+
+@OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun Content(modifier: Modifier = Modifier) {
 //    Log.e("TAG", "CONTENT")
@@ -134,13 +151,15 @@ fun Content(modifier: Modifier = Modifier) {
                 },
                 text = {
                     Column {
-                        OutlinedTextField(value = username,
+                        OutlinedTextField(
+                            value = username,
                             onValueChange = { username = it },
                             label = { Text("Username") },
                             modifier = modifier.fillMaxWidth()
                         )
                         Spacer(modifier = modifier.height(8.dp))
-                        OutlinedTextField(value = password,
+                        OutlinedTextField(
+                            value = password,
                             onValueChange = { password = it },
                             label = { Text("Password") },
                             modifier = modifier.fillMaxWidth()
@@ -356,7 +375,8 @@ fun Content(modifier: Modifier = Modifier) {
                         })
                 }
                 item {
-                    Tile(title = "And what about battery drain?",
+                    Tile(
+                        title = "And what about battery drain?",
                         state = TileState.INFO,
                         onClick = {
                             openDialogF3.value = true
@@ -377,11 +397,23 @@ fun Content(modifier: Modifier = Modifier) {
                     },
                     text = {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("Once the app setup is done, forget it, background service handles everything automatically.", style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
+                            Text(
+                                "Once the app setup is done, forget it, background service handles everything automatically.",
+                                style = MaterialTheme.typography.bodyLarge,
+                                textAlign = TextAlign.Center
+                            )
                             Spacer(modifier = modifier.height(16.dp))
-                            Text("If the service is off or killed, tap the quick tile to login automatically. (follow battery optimization steps to prevent killing).", style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
+                            Text(
+                                "If the service is off or killed, tap the quick tile to login automatically. (follow battery optimization steps to prevent killing).",
+                                style = MaterialTheme.typography.bodyLarge,
+                                textAlign = TextAlign.Center
+                            )
                             Spacer(modifier = modifier.height(16.dp))
-                            Text("You can turn the service off when outside campus for several days.", style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
+                            Text(
+                                "You can turn the service off when outside campus for several days.",
+                                style = MaterialTheme.typography.bodyLarge,
+                                textAlign = TextAlign.Center
+                            )
 
                         }
 
@@ -403,7 +435,10 @@ fun Content(modifier: Modifier = Modifier) {
                         Text("Data stored on device")
                     },
                     text = {
-                        Text("Your credentials remain on your device. You can check the device IPs, that connected using your credentials from the user portal.", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            "Your credentials remain on your device. You can check the device IPs, that connected using your credentials from the user portal.",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
 
                     },
                     confirmButton = {
@@ -423,7 +458,10 @@ fun Content(modifier: Modifier = Modifier) {
                         Text("Negligible Battery Drain")
                     },
                     text = {
-                        Text("Background service only takes about 10MB memory, and is triggered only when Wi-Fi connects", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            "Background service only takes about 10MB memory, and is triggered only when Wi-Fi connects",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
 
                     },
                     confirmButton = {
@@ -447,7 +485,9 @@ fun Content(modifier: Modifier = Modifier) {
                 IconButton(onClick = { uriHandler.openUri("https://www.linkedin.com/in/sparsh-goenka-521ba9222/") }) {
                     Image(
                         painter = rememberDrawablePainter(
-                            drawable = getDrawable(LocalContext.current, R.drawable.ic_linkedin),
+                            drawable = getDrawable(
+                                LocalContext.current, R.drawable.ic_linkedin
+                            ),
 
                             ),
                         colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground),
