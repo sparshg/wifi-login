@@ -473,7 +473,7 @@ fun Content(modifier: Modifier = Modifier) {
                     })
             }
             BottomAppBar(actions = {
-                IconButton(onClick = { uriHandler.openUri("https://github.com/sparshg") }) {
+                IconButton(onClick = { uriHandler.openUri("https://github.com/sparshg/bitslogin") }) {
                     Image(
                         painter = rememberDrawablePainter(
                             drawable = getDrawable(LocalContext.current, R.drawable.ic_github)
