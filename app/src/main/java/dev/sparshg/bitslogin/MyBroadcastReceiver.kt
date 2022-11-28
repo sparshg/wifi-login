@@ -33,6 +33,7 @@ class MyBroadcastReceiver : BroadcastReceiver() {
             )
             val username = pref.getString("username", null)
             val password = pref.getString("password", null)
+            val address = pref.getString("address", "https://fw.bits-pilani.ac.in:8090/login.xml")
             if (username == null || password == null) {
                 val notificationManager =
                     context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -62,7 +63,7 @@ class MyBroadcastReceiver : BroadcastReceiver() {
                     .build()
             val editor = pref.edit()
             val stringRequest: StringRequest = object : StringRequest(Request.Method.POST,
-                "https://fw.bits-pilani.ac.in:8090/login.xml",
+                address,
                 Response.Listener {
 //                    Log.e("TAG", "Volley Successsss")
                     Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()

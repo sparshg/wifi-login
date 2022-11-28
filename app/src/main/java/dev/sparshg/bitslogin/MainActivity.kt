@@ -12,6 +12,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -21,6 +22,7 @@ import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -42,6 +44,7 @@ import androidx.core.content.ContextCompat.*
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.OnLifecycleEvent
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -52,6 +55,7 @@ import com.google.android.play.core.review.ReviewManager
 import com.google.android.play.core.review.ReviewManagerFactory
 import dev.sparshg.bitslogin.ui.theme.MyApplicationTheme
 import kotlinx.coroutines.launch
+import org.intellij.lang.annotations.JdkConstants.HorizontalAlignment
 
 
 class MainActivity : ComponentActivity() {
@@ -119,6 +123,7 @@ fun Content(modifier: Modifier = Modifier) {
     val isCredSet = dataStore.credSet.collectAsState(initial = false)
     val isQsAdded = dataStore.qsAdded.collectAsState(initial = false)
     val isServiceRunning = dataStore.service.collectAsState(initial = false)
+    val address = dataStore.address.collectAsState(initial = 0)
     val lastReviewed = dataStore.review.collectAsState(initial = System.currentTimeMillis())
     val uriHandler = LocalUriHandler.current
     if (isServiceRunning.value) {
@@ -151,15 +156,13 @@ fun Content(modifier: Modifier = Modifier) {
                 },
                 text = {
                     Column {
-                        OutlinedTextField(
-                            value = username,
+                        OutlinedTextField(value = username,
                             onValueChange = { username = it },
                             label = { Text("Username") },
                             modifier = modifier.fillMaxWidth()
                         )
                         Spacer(modifier = modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = password,
+                        OutlinedTextField(value = password,
                             onValueChange = { password = it },
                             label = { Text("Password") },
                             modifier = modifier.fillMaxWidth()
@@ -274,6 +277,82 @@ fun Content(modifier: Modifier = Modifier) {
                     )
                 }
                 item {
+//                    AnimatedContent(targetState = address.value) {
+                        LazyRow(
+                            modifier = modifier
+                                .padding(horizontal = 16.dp, vertical = 4.dp)
+                                .fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            item {
+                                ElevatedButton(modifier = modifier
+                                    .padding(4.dp)
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = if (address.value == 0) ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary
+                                    )
+                                    else ButtonDefaults.elevatedButtonColors(),
+                                    onClick = {
+                                        scope.launch {
+                                            dataStore.setAddress(0)
+                                        }
+                                        VolleySingleton.getInstance(context).cancelAll()
+                                        prefs.edit().putString(
+                                            "address", "https://fw.bits-pilani.ac.in:8090/login.xml"
+                                        ).apply()
+                                    }) {
+                                    Text(modifier = modifier.padding(6.dp), text = "Pilani")
+                                }
+                            }
+                            item {
+                                ElevatedButton(modifier = modifier
+                                    .padding(4.dp)
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = if (address.value == 1) ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary
+                                    ) else ButtonDefaults.elevatedButtonColors(),
+                                    onClick = {
+                                        scope.launch {
+                                            dataStore.setAddress(1)
+                                        }
+                                        VolleySingleton.getInstance(context).cancelAll()
+                                        prefs.edit().putString(
+                                            "address",
+                                            "https://campnet.bits-goa.ac.in:8090/login.xml"
+                                        ).apply()
+                                    }) {
+                                    Text(modifier = modifier.padding(6.dp), text = "Goa")
+                                }
+                            }
+                            item {
+                                ElevatedButton(modifier = modifier
+                                    .padding(4.dp)
+                                    .fillMaxWidth()
+                                    .weight(1f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = if (address.value == 2) ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary
+                                    )
+                                    else ButtonDefaults.elevatedButtonColors(),
+                                    onClick = {
+                                        scope.launch {
+                                            dataStore.setAddress(2)
+                                        }
+                                        VolleySingleton.getInstance(context).cancelAll()
+                                        prefs.edit().putString(
+                                            "address", "https://172.16.0.30:8090/login.xml"
+                                        ).apply()
+                                    }) {
+                                    Text(modifier = modifier.padding(6.dp), text = "Hyderabad")
+                                }
+                            }
+//                        }
+                    }
+                }
+                item {
                     AnimatedContent(targetState = isCredSet.value) {
                         if (!it) {
                             Tile("Wi-Fi Login Credentials",
@@ -375,8 +454,7 @@ fun Content(modifier: Modifier = Modifier) {
                         })
                 }
                 item {
-                    Tile(
-                        title = "And what about battery drain?",
+                    Tile(title = "And what about battery drain?",
                         state = TileState.INFO,
                         onClick = {
                             openDialogF3.value = true

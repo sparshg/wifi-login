@@ -85,6 +85,7 @@ class MyQSTileService : TileService() {
         val context = this
         val username = pref.getString("username", null)
         val password = pref.getString("password", null)
+        val address = pref.getString("address", "https://fw.bits-pilani.ac.in:8090/login.xml")
         if (username == null || password == null) {
             val notificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -114,17 +115,15 @@ class MyQSTileService : TileService() {
             return
         }
 
-        val stringRequest: StringRequest = object : StringRequest(Method.POST,
-            "https://fw.bits-pilani.ac.in:8090/login.xml",
-            Response.Listener {
+        val stringRequest: StringRequest =
+            object : StringRequest(Method.POST, address, Response.Listener {
 //                    Log.e("TAG", "Volley Successd")
                 Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
                 pref.edit().putBoolean("enabled", false).apply()
                 VolleySingleton.isEmpty = true
                 qsTile.state = Tile.STATE_INACTIVE
                 qsTile.updateTile()
-            },
-            Response.ErrorListener {
+            }, Response.ErrorListener {
 //                    Log.e("TAG", "Volley Error: $it")
                 Toast.makeText(context, "Login Timeout error", Toast.LENGTH_SHORT).show()
                 pref.edit().putBoolean("enabled", false).apply()
@@ -132,20 +131,20 @@ class MyQSTileService : TileService() {
                 qsTile.state = Tile.STATE_INACTIVE
                 qsTile.updateTile()
             }) {
-            override fun getParams(): Map<String, String> {
-                val params: MutableMap<String, String> = HashMap()
-                params["mode"] = "191"
-                params["username"] = username
-                params["password"] = password
-                params["a"] = System.currentTimeMillis().toString()
+                override fun getParams(): Map<String, String> {
+                    val params: MutableMap<String, String> = HashMap()
+                    params["mode"] = "191"
+                    params["username"] = username
+                    params["password"] = password
+                    params["a"] = System.currentTimeMillis().toString()
 //                    Log.d("TAG", params.toString());
-                return params
-            }
+                    return params
+                }
 
-            override fun getBodyContentType(): String {
-                return "application/x-www-form-urlencoded; charset=UTF-8"
+                override fun getBodyContentType(): String {
+                    return "application/x-www-form-urlencoded; charset=UTF-8"
+                }
             }
-        }
         stringRequest.retryPolicy = DefaultRetryPolicy(
             DefaultRetryPolicy.DEFAULT_TIMEOUT_MS, 1, DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
@@ -153,7 +152,8 @@ class MyQSTileService : TileService() {
             NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI).build()
         val connectivityManager =
             this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        connectivityManager.requestNetwork(networkRequest,
+        connectivityManager.requestNetwork(
+            networkRequest,
             object : ConnectivityManager.NetworkCallback() {
                 override fun onAvailable(network: android.net.Network) {
                     super.onAvailable(network)

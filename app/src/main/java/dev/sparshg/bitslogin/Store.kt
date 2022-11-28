@@ -16,6 +16,7 @@ class Store(private val context: Context) {
         val QSADDED = booleanPreferencesKey("qsAdded")
         val SERVICE = booleanPreferencesKey("service")
         val REVIEW = longPreferencesKey("review")
+        val ADDRESS = intPreferencesKey("address")
     }
 
     val credSet: Flow<Boolean> = context.dataStore.data
@@ -33,6 +34,10 @@ class Store(private val context: Context) {
     val review: Flow<Long> = context.dataStore.data
         .map { preferences ->
             preferences[REVIEW] ?: System.currentTimeMillis()
+        }
+    val address: Flow<Int> = context.dataStore.data
+        .map { preferences ->
+            preferences[ADDRESS] ?: 0
         }
 
     suspend fun setCredSet(isSet: Boolean) {
@@ -53,6 +58,11 @@ class Store(private val context: Context) {
     suspend fun setReview(review: Long) {
         context.dataStore.edit { preferences ->
             preferences[REVIEW] = review
+        }
+    }
+    suspend fun setAddress(address: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[ADDRESS] = address
         }
     }
 }
