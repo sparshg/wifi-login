@@ -16,9 +16,7 @@ import android.service.quicksettings.TileService
 import android.util.Log
 import android.widget.Toast
 import androidx.core.content.ContextCompat.getSystemService
-import com.android.volley.DefaultRetryPolicy
-import com.android.volley.Request
-import com.android.volley.Response
+import com.android.volley.*
 import com.android.volley.toolbox.StringRequest
 
 
@@ -75,15 +73,21 @@ class MyBroadcastReceiver : BroadcastReceiver() {
                 },
                 Response.ErrorListener {
 //                    Log.e("TAG", "Volley Error: $it")
-                    Toast.makeText(context, "Login Timeout error", Toast.LENGTH_SHORT).show()
+                    val e = when (it) {
+                        is TimeoutError, is NoConnectionError -> " Timeout"
+                        is AuthFailureError -> " AuthFailure"
+                        is ServerError -> " Server"
+                        is NetworkError -> " Network"
+                        else -> ""
+                    }
+                    Toast.makeText(context, "Login$e Error", Toast.LENGTH_SHORT).show()
                     editor.putBoolean("enabled", false).apply()
                     TileService.requestListeningState(
                         context, ComponentName(context, MyQSTileService::class.java)
                     )
-
                     VolleySingleton.isEmpty = true
                 }) {
-                override fun getParams(): Map<String, String>? {
+                override fun getParams(): Map<String, String> {
                     val params: MutableMap<String, String> = HashMap()
                     params["mode"] = "191"
                     params["username"] = username
@@ -93,7 +97,7 @@ class MyBroadcastReceiver : BroadcastReceiver() {
                     return params
                 }
 
-                override fun getBodyContentType(): String? {
+                override fun getBodyContentType(): String {
                     return "application/x-www-form-urlencoded; charset=UTF-8"
                 }
             }

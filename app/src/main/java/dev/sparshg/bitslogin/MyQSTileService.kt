@@ -12,8 +12,7 @@ import android.net.wifi.WifiManager
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import android.widget.Toast
-import com.android.volley.DefaultRetryPolicy
-import com.android.volley.Response
+import com.android.volley.*
 import com.android.volley.toolbox.StringRequest
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
@@ -125,7 +124,14 @@ class MyQSTileService : TileService() {
                 qsTile.updateTile()
             }, Response.ErrorListener {
 //                    Log.e("TAG", "Volley Error: $it")
-                Toast.makeText(context, "Login Timeout error", Toast.LENGTH_SHORT).show()
+                val e = when (it) {
+                    is TimeoutError, is NoConnectionError -> " Timeout"
+                    is AuthFailureError -> " AuthFailure"
+                    is ServerError -> " Server"
+                    is NetworkError -> " Network"
+                    else -> ""
+                }
+                Toast.makeText(context, "Login$e Error", Toast.LENGTH_SHORT).show()
                 pref.edit().putBoolean("enabled", false).apply()
                 VolleySingleton.isEmpty = true
                 qsTile.state = Tile.STATE_INACTIVE
@@ -145,6 +151,7 @@ class MyQSTileService : TileService() {
                     return "application/x-www-form-urlencoded; charset=UTF-8"
                 }
             }
+
         stringRequest.retryPolicy = DefaultRetryPolicy(
             DefaultRetryPolicy.DEFAULT_TIMEOUT_MS, 1, DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
