@@ -21,11 +21,9 @@ class LoginService : Service() {
         IntentFilter(WifiManager.WIFI_STATE_CHANGED_ACTION).also { intentFilter ->
             registerReceiver(receiver, intentFilter)
         }
-//        Log.e("TAG", "onCreate: ")
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-//        Log.e("TAG", "onStartCommand: ")
         IS_RUNNING = true
         val pendingIntent: PendingIntent =
             Intent(this, MainActivity::class.java).let { notificationIntent ->
@@ -59,7 +57,6 @@ class LoginService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-//        Log.e("TAG", "onDestroy: ")
         IS_RUNNING = false
         unregisterReceiver(receiver)
     }

@@ -15,9 +15,12 @@ import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.runtime.currentRecomposeScope
 import androidx.core.content.ContextCompat.getSystemService
 import com.android.volley.*
 import com.android.volley.toolbox.StringRequest
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 
 class MyBroadcastReceiver : BroadcastReceiver() {
@@ -31,7 +34,12 @@ class MyBroadcastReceiver : BroadcastReceiver() {
             )
             val username = pref.getString("username", null)
             val password = pref.getString("password", null)
-            val address = pref.getString("address", "https://fw.bits-pilani.ac.in:8090/login.xml")
+            val address = when (runBlocking { Store(context).address.first() }) {
+                1 -> "https://campnet.bits-goa.ac.in:8090/login.xml"
+                2 -> "https://172.16.0.30:8090/login.xml"
+                else -> "https://fw.bits-pilani.ac.in:8090/login.xml"
+            }
+            Log.e("TAG", address)
             if (username == null || password == null) {
                 val notificationManager =
                     context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -63,7 +71,6 @@ class MyBroadcastReceiver : BroadcastReceiver() {
             val stringRequest: StringRequest = object : StringRequest(Request.Method.POST,
                 address,
                 Response.Listener {
-//                    Log.e("TAG", "Volley Successsss")
                     Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
                     editor.putBoolean("enabled", false).apply()
                     TileService.requestListeningState(
@@ -93,7 +100,6 @@ class MyBroadcastReceiver : BroadcastReceiver() {
                     params["username"] = username
                     params["password"] = password
                     params["a"] = System.currentTimeMillis().toString()
-//                    Log.d("TAG", params.toString());
                     return params
                 }
 
@@ -111,17 +117,9 @@ class MyBroadcastReceiver : BroadcastReceiver() {
                         super.onAvailable(network)
                         connectivityManager.bindProcessToNetwork(network)
 
-//                        if (!pref.getBoolean(
-//                                "enabled", false
-//                            )
-//                                && ssid.equals("\"BITS-STUDENT\"") || ssid.equals("\"BITS-STAFF\"") || ssid.equals(
-//                                    "<unknown ssid>"
-//                                )
-//                        ) {
                         if (VolleySingleton.isEmpty) {
                             editor.putBoolean("enabled", true).apply()
-//                            Log.e("TAG", "enabled " + pref.getBoolean("enabled", false))
-                            VolleySingleton.getInstance(context).addToRequestQueue(stringRequest)
+                            VolleySingleton.getInstance(context.applicationContext).addToRequestQueue(stringRequest)
 //                            TileService.requestListeningState(
 //                                context, ComponentName(context, MyQSTileService::class.java)
 //                            )

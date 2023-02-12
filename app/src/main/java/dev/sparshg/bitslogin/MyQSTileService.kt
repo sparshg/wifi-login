@@ -11,6 +11,7 @@ import android.net.NetworkRequest
 import android.net.wifi.WifiManager
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
+import android.util.Log
 import android.widget.Toast
 import com.android.volley.*
 import com.android.volley.toolbox.StringRequest
@@ -36,16 +37,6 @@ class MyQSTileService : TileService() {
 
     override fun onStartListening() {
         super.onStartListening()
-//        Toast.makeText(this.applicationContext, "ON", Toast.LENGTH_SHORT).show()
-//        Log.e(
-//            "TAG", "onStartListening: " + this.getSharedPreferences(
-//                this.getString(R.string.pref_name), Context.MODE_PRIVATE
-//            ).getBoolean(
-//                "enabled", false
-//            )
-//        )
-//        qsTile.label = resources.getString(R.string.qs_label);
-//    qsTile.contentDescription = state.label
         qsTile.state = if (getSharedPreferences(
                 getString(R.string.pref_name), Context.MODE_PRIVATE
             ).getBoolean(
@@ -62,29 +53,22 @@ class MyQSTileService : TileService() {
     // Called when your app can no longer update your tile.
     override fun onStopListening() {
         super.onStopListening()
-//        Log.e("TAG", "onStopListening: ")
     }
 
     // Called when the user taps on your tile in an active or inactive state.
     override fun onClick() {
         super.onClick()
         val pref = getSharedPreferences(getString(R.string.pref_name), Context.MODE_PRIVATE)
-//        val wifiManager = this.getSystemService(Context.WIFI_SERVICE) as WifiManager
-//        val ssid = wifiManager.connectionInfo.ssid
-//        Log.e("TAG", "doWork: $ssid")
-//        pref.edit().putBoolean("enabled", false).apply()
-
-//        if (!pref.getBoolean(
-//                "enabled", false
-//            )
-//            && ssid.equals("\"BITS-STUDENT\"") || ssid.equals("\"BITS-STAFF\"") || ssid.equals("<unknown ssid>")
-//        ) {
-//            Log.e("TAG", "onClick: ")
-        // if not connected to wifi
         val context = this
         val username = pref.getString("username", null)
         val password = pref.getString("password", null)
-        val address = pref.getString("address", "https://fw.bits-pilani.ac.in:8090/login.xml")
+        val address = when (runBlocking { Store(context).address.first() }) {
+            1 -> "https://campnet.bits-goa.ac.in:8090/login.xml"
+            2 -> "https://172.16.0.30:8090/login.xml"
+            else -> "https://fw.bits-pilani.ac.in:8090/login.xml"
+        }
+        Log.e("TAG", address)
+
         if (username == null || password == null) {
             val notificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -116,7 +100,6 @@ class MyQSTileService : TileService() {
 
         val stringRequest: StringRequest =
             object : StringRequest(Method.POST, address, Response.Listener {
-//                    Log.e("TAG", "Volley Successd")
                 Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
                 pref.edit().putBoolean("enabled", false).apply()
                 VolleySingleton.isEmpty = true
@@ -143,7 +126,6 @@ class MyQSTileService : TileService() {
                     params["username"] = username
                     params["password"] = password
                     params["a"] = System.currentTimeMillis().toString()
-//                    Log.d("TAG", params.toString());
                     return params
                 }
 
@@ -168,10 +150,8 @@ class MyQSTileService : TileService() {
                         pref.edit().putBoolean("enabled", true).apply()
                         qsTile.state = Tile.STATE_ACTIVE
                         qsTile.updateTile()
-////
                         connectivityManager.bindProcessToNetwork(network)
-//                            Log.e("TAG", network.toString())
-                        VolleySingleton.getInstance(context).addToRequestQueue(stringRequest)
+                        VolleySingleton.getInstance(context.applicationContext).addToRequestQueue(stringRequest)
                     }
                 }
             })
@@ -201,12 +181,10 @@ class MyQSTileService : TileService() {
             }
         }
     }
-//    }
 
     // Called when the user removes your tile.
     override fun onTileRemoved() {
         super.onTileRemoved()
-//        Log.e("TAG", "onTileRemoved: ")
         scope.launch {
             Store(applicationContext).setQsAdded(false)
         }

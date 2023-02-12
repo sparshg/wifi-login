@@ -3,6 +3,7 @@
 package dev.sparshg.bitslogin
 
 import android.app.Activity
+import android.app.ActivityManager
 import android.content.ActivityNotFoundException
 import android.content.Context.MODE_PRIVATE
 import android.content.Context.POWER_SERVICE
@@ -297,10 +298,7 @@ fun Content(modifier: Modifier = Modifier) {
                                         scope.launch {
                                             dataStore.setAddress(0)
                                         }
-                                        VolleySingleton.getInstance(context).cancelAll()
-                                        prefs.edit().putString(
-                                            "address", "https://fw.bits-pilani.ac.in:8090/login.xml"
-                                        ).apply()
+                                        VolleySingleton.getInstance(context.applicationContext).cancelAll()
                                     }) {
                                     Text(modifier = modifier.padding(6.dp), text = "Pilani")
                                 }
@@ -318,11 +316,7 @@ fun Content(modifier: Modifier = Modifier) {
                                         scope.launch {
                                             dataStore.setAddress(1)
                                         }
-                                        VolleySingleton.getInstance(context).cancelAll()
-                                        prefs.edit().putString(
-                                            "address",
-                                            "https://campnet.bits-goa.ac.in:8090/login.xml"
-                                        ).apply()
+                                        VolleySingleton.getInstance(context.applicationContext).cancelAll()
                                     }) {
                                     Text(modifier = modifier.padding(6.dp), text = "Goa")
                                 }
@@ -341,10 +335,7 @@ fun Content(modifier: Modifier = Modifier) {
                                         scope.launch {
                                             dataStore.setAddress(2)
                                         }
-                                        VolleySingleton.getInstance(context).cancelAll()
-                                        prefs.edit().putString(
-                                            "address", "https://172.16.0.30:8090/login.xml"
-                                        ).apply()
+                                        VolleySingleton.getInstance(context.applicationContext).cancelAll()
                                     }) {
                                     Text(modifier = modifier.padding(6.dp), text = "Hyderabad")
                                 }
