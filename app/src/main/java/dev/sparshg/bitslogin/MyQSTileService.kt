@@ -37,6 +37,7 @@ class MyQSTileService : TileService() {
 
     override fun onStartListening() {
         super.onStartListening()
+
         qsTile.state = if (getSharedPreferences(
                 getString(R.string.pref_name), Context.MODE_PRIVATE
             ).getBoolean(
@@ -62,8 +63,7 @@ class MyQSTileService : TileService() {
             2 -> "https://172.16.0.30:8090/login.xml"
             else -> "https://fw.bits-pilani.ac.in:8090/login.xml"
         }
-//        val address = "https://clients3.google.com/generate_204"
-        Log.e("TAG", "$address ${settings.username} ${settings.password}")
+//        Log.e("TAG", "$address ${settings.username} ${settings.password}")
 
         if (settings.username == "" || settings.password == "") {
             val notificationManager =
@@ -95,14 +95,13 @@ class MyQSTileService : TileService() {
 
         val stringRequest: StringRequest =
             object : StringRequest(Method.POST, address, Response.Listener {
-                Toast.makeText(context, "Login successfulqs", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
                 pref.edit().putBoolean("enabled", false).apply()
                 VolleySingleton.isEmpty = true
                 qsTile.state = Tile.STATE_INACTIVE
                 qsTile.updateTile()
-                Log.e("TAG", "Volley Response: $it")
+//                Log.e("TAG", "Volley Response: $it")
             }, Response.ErrorListener {
-//                    Log.e("TAG", "Volley Error: $it")
                 val e = when (it) {
                     is TimeoutError, is NoConnectionError -> " Timeout"
                     is AuthFailureError -> " AuthFailure"

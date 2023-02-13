@@ -8,7 +8,6 @@ import com.android.volley.Request
 import com.android.volley.toolbox.Volley
 
 class VolleySingleton constructor(context: Context) {
-
     companion object {
         @Volatile
         private var INSTANCE: VolleySingleton? = null

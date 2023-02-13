@@ -36,7 +36,7 @@ class MyBroadcastReceiver : BroadcastReceiver() {
                 2 -> "https://172.16.0.30:8090/login.xml"
                 else -> "https://fw.bits-pilani.ac.in:8090/login.xml"
             }
-            Log.e("TAG", "$address ${settings.username} ${settings.password}")
+//            Log.e("TAG", "$address ${settings.username} ${settings.password}")
             if (settings.username == "" || settings.password == "") {
                 val notificationManager =
                     context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -67,7 +67,7 @@ class MyBroadcastReceiver : BroadcastReceiver() {
             val stringRequest: StringRequest = object : StringRequest(Method.POST,
                 address,
                 Response.Listener {
-                    Toast.makeText(context, "Login successfulbr", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
                     editor.putBoolean("enabled", false).apply()
                     TileService.requestListeningState(
                         context, ComponentName(context, MyQSTileService::class.java)

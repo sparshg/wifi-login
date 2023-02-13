@@ -3,7 +3,6 @@
 package dev.sparshg.bitslogin
 
 import android.app.Activity
-import android.app.ActivityManager
 import android.content.ActivityNotFoundException
 import android.content.Context.MODE_PRIVATE
 import android.content.Context.POWER_SERVICE
@@ -12,10 +11,11 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalAnimationApi
@@ -38,10 +38,10 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection.Companion.Content
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat.*
-import androidx.datastore.core.DataStore
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
@@ -56,8 +56,6 @@ import com.google.android.play.core.review.ReviewManager
 import com.google.android.play.core.review.ReviewManagerFactory
 import dev.sparshg.bitslogin.ui.theme.MyApplicationTheme
 import kotlinx.coroutines.launch
-import org.intellij.lang.annotations.JdkConstants.HorizontalAlignment
-
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -81,16 +79,23 @@ fun CheckNotifPermission() {
         android.Manifest.permission.POST_NOTIFICATIONS
     )
     if (!notifPermState.status.isGranted) {
-        if (notifPermState.status.shouldShowRationale) {
-            Toast.makeText(
-                LocalContext.current,
-                "Notifications are denied for whole app instead of just the service.",
-                Toast.LENGTH_SHORT
-            ).show()
+//        if (notifPermState.status.shouldShowRationale) {
+//            Toast.makeText(
+//                LocalContext.current,
+//                "Notifications are denied for whole app instead of just the service.",
+//                Toast.LENGTH_SHORT
+//            ).show()
+//        }
+//        LaunchedEffect(notifPermState) {
+//            notifPermState.launchPermissionRequest()
+            val launcher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.RequestPermission(),
+                onResult = {}
+            )
+        SideEffect {
+            launcher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
         }
-        LaunchedEffect(notifPermState) {
-            notifPermState.launchPermissionRequest()
-        }
+//        }
     }
 }
 
@@ -174,10 +179,6 @@ fun Content(modifier: Modifier = Modifier) {
                                 dataStore.setPassword(password.trim())
                             }
                             VolleySingleton.getInstance(context).cancelAll()
-//                            prefs.edit().putString("username", username.trim())
-//                                .putString("password", password.trim()).putBoolean("enabled", false)
-//                                .apply()
-
                         }
                     }) {
                         Text("Confirm")
@@ -435,7 +436,7 @@ fun Content(modifier: Modifier = Modifier) {
                     })
                 }
                 item {
-                    Tile(title = "But what about my credentials?",
+                    Tile(title = "Privacy Concerns?",
                         state = TileState.INFO,
                         onClick = {
                             openDialogF2.value = true
@@ -464,13 +465,13 @@ fun Content(modifier: Modifier = Modifier) {
                     text = {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                "Once the app setup is done, forget it, background service handles everything automatically.",
+                                "Setup and forget, background service handles everything automatically.",
                                 style = MaterialTheme.typography.bodyLarge,
                                 textAlign = TextAlign.Center
                             )
                             Spacer(modifier = modifier.height(16.dp))
                             Text(
-                                "If the service is off or killed, tap the quick tile to login automatically. (follow battery optimization steps to prevent killing).",
+                                "If the service fails, tap the quick tile to login. (make sure app isn't battery optimized).",
                                 style = MaterialTheme.typography.bodyLarge,
                                 textAlign = TextAlign.Center
                             )
@@ -501,11 +502,17 @@ fun Content(modifier: Modifier = Modifier) {
                         Text("Data stored on device")
                     },
                     text = {
-                        Text(
-                            "Your credentials remain on your device. You can check the device IPs, that connected using your credentials from the user portal.",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                "Your credentials remain on your device. You can check the device IPs, that connected using your credentials from the user portal.",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Spacer(modifier = modifier.height(16.dp))
+                            Text(
+                                "The app is open sourced so you can check the code too.",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
                     },
                     confirmButton = {
                         TextButton(onClick = {
