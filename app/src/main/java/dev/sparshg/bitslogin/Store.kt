@@ -2,68 +2,70 @@ package dev.sparshg.bitslogin
 
 import android.content.Context
 import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.*
-import androidx.datastore.preferences.preferencesDataStore
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import androidx.datastore.core.MultiProcessDataStoreFactory
 import java.io.File
+import kotlin.coroutines.coroutineContext
+import kotlin.reflect.KParameter
 
-class Store(private val context: Context) {
+class Store(val context: Context) {
 
     // to make sure there is only one instance
     companion object {
-        private val Context.dataStore: DataStore<Preferences> by preferencesDataStore("settings")
-        val CREDSET = booleanPreferencesKey("credSet")
-        val QSADDED = booleanPreferencesKey("qsAdded")
-        val SERVICE = booleanPreferencesKey("service")
-        val REVIEW = longPreferencesKey("review")
-        val ADDRESS = intPreferencesKey("address")
+        private var dataStore: DataStore<Settings>? = null
+        fun getInstance(context: Context): DataStore<Settings> {
+            dataStore ?: synchronized(this) {
+                dataStore ?: Store(context).also {
+                    dataStore = MultiProcessDataStoreFactory.create(
+                        serializer = SettingsSerializer(),
+                        produceFile = {
+                            File("${context.cacheDir.path}/settings")
+                        }
+                    )
+                }
+            }
+            return dataStore!!
+        }
     }
 
-    val credSet: Flow<Boolean> = context.dataStore.data
-        .map { preferences ->
-            preferences[CREDSET] ?: false
+    suspend fun setCredSet(v: Boolean) {
+        dataStore!!.updateData {
+            it.copy(credSet = v)
         }
-    val qsAdded: Flow<Boolean> = context.dataStore.data
-        .map { preferences ->
-            preferences[QSADDED] ?: false
-        }
-    val service: Flow<Boolean> = context.dataStore.data
-        .map { preferences ->
-            preferences[SERVICE] ?: false
-        }
-    val review: Flow<Long> = context.dataStore.data
-        .map { preferences ->
-            preferences[REVIEW] ?: System.currentTimeMillis()
-        }
-    val address: Flow<Int> = context.dataStore.data
-        .map { preferences ->
-            preferences[ADDRESS] ?: 0
-        }
+    }
 
-    suspend fun setCredSet(isSet: Boolean) {
-        context.dataStore.edit { preferences ->
-            preferences[CREDSET] = isSet
+    suspend fun setQsAdded(v: Boolean) {
+        dataStore!!.updateData {
+            it.copy(qsAdded = v)
         }
     }
-    suspend fun setQsAdded(isSet: Boolean) {
-        context.dataStore.edit { preferences ->
-            preferences[QSADDED] = isSet
+
+    suspend fun setService(v: Boolean) {
+        dataStore!!.updateData {
+            it.copy(service = v)
         }
     }
-    suspend fun setService(service: Boolean) {
-        context.dataStore.edit { preferences ->
-            preferences[SERVICE] = service
+
+    suspend fun setReview(v: Long) {
+        dataStore!!.updateData {
+            it.copy(review = v)
         }
     }
-    suspend fun setReview(review: Long) {
-        context.dataStore.edit { preferences ->
-            preferences[REVIEW] = review
+
+    suspend fun setAddress(v: Int) {
+        dataStore!!.updateData {
+            it.copy(address = v)
         }
     }
-    suspend fun setAddress(address: Int) {
-        context.dataStore.edit { preferences ->
-            preferences[ADDRESS] = address
+
+    suspend fun setUsername(v: String) {
+        dataStore!!.updateData {
+            it.copy(username = v)
+        }
+    }
+
+    suspend fun setPassword(v: String) {
+        dataStore!!.updateData {
+            it.copy(password = v)
         }
     }
 }

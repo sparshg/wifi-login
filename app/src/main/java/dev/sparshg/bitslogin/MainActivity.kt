@@ -12,7 +12,6 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
-import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -42,6 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat.*
+import androidx.datastore.core.DataStore
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
@@ -105,6 +105,7 @@ fun Content(modifier: Modifier = Modifier) {
     val openReview = remember { mutableStateOf(false) }
     val context = LocalContext.current
     val dataStore = Store(context)
+    val settings: Settings by Store.getInstance(context).data.collectAsState(initial = Settings())
     val reviewManager = remember {
         ReviewManagerFactory.create(context)
     }
@@ -119,13 +120,8 @@ fun Content(modifier: Modifier = Modifier) {
             context.getString(R.string.pref_name), MODE_PRIVATE
         )
     }
-    val isCredSet = dataStore.credSet.collectAsState(initial = false)
-    val isQsAdded = dataStore.qsAdded.collectAsState(initial = false)
-    val isServiceRunning = dataStore.service.collectAsState(initial = false)
-    val address = dataStore.address.collectAsState(initial = 0)
-    val lastReviewed = dataStore.review.collectAsState(initial = System.currentTimeMillis())
     val uriHandler = LocalUriHandler.current
-    if (isServiceRunning.value) {
+    if (settings.service) {
         val intent = Intent(context, LoginService::class.java)
         context.startForegroundService(intent)
     }
@@ -174,11 +170,14 @@ fun Content(modifier: Modifier = Modifier) {
                         if (username.isNotEmpty() && password.isNotEmpty()) {
                             scope.launch {
                                 dataStore.setCredSet(true)
+                                dataStore.setUsername(username.trim())
+                                dataStore.setPassword(password.trim())
                             }
                             VolleySingleton.getInstance(context).cancelAll()
-                            prefs.edit().putString("username", username.trim())
-                                .putString("password", password.trim()).putBoolean("enabled", false)
-                                .apply()
+//                            prefs.edit().putString("username", username.trim())
+//                                .putString("password", password.trim()).putBoolean("enabled", false)
+//                                .apply()
+
                         }
                     }) {
                         Text("Confirm")
@@ -195,7 +194,7 @@ fun Content(modifier: Modifier = Modifier) {
         if (openReview.value) {
             openReview.value = false
             LaunchedEffect(key1 = reviewInfo) {
-                if (lastReviewed.value < System.currentTimeMillis() - 2678400.toLong()) {
+                if (settings.review < System.currentTimeMillis() - 2678400.toLong()) {
                     scope.launch {
                         dataStore.setReview(System.currentTimeMillis())
                     }
@@ -288,7 +287,7 @@ fun Content(modifier: Modifier = Modifier) {
                                     .fillMaxWidth()
                                     .weight(1f),
                                     shape = RoundedCornerShape(8.dp),
-                                    colors = if (address.value == 0) ButtonDefaults.buttonColors(
+                                    colors = if (settings.address == 0) ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.primary
                                     )
                                     else ButtonDefaults.elevatedButtonColors(),
@@ -307,7 +306,7 @@ fun Content(modifier: Modifier = Modifier) {
                                     .fillMaxWidth()
                                     .weight(1f),
                                     shape = RoundedCornerShape(8.dp),
-                                    colors = if (address.value == 1) ButtonDefaults.buttonColors(
+                                    colors = if (settings.address == 1) ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.primary
                                     ) else ButtonDefaults.elevatedButtonColors(),
                                     onClick = {
@@ -325,7 +324,7 @@ fun Content(modifier: Modifier = Modifier) {
                                     .fillMaxWidth()
                                     .weight(1f),
                                     shape = RoundedCornerShape(8.dp),
-                                    colors = if (address.value == 2) ButtonDefaults.buttonColors(
+                                    colors = if (settings.address == 2) ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.primary
                                     )
                                     else ButtonDefaults.elevatedButtonColors(),
@@ -342,7 +341,7 @@ fun Content(modifier: Modifier = Modifier) {
                     }
                 }
                 item {
-                    AnimatedContent(targetState = isCredSet.value) {
+                    AnimatedContent(targetState = settings.credSet) {
                         if (!it) {
                             Tile("Wi-Fi Login Credentials",
                                 "Set your login credentials. These are only stored on your device.",
@@ -361,7 +360,7 @@ fun Content(modifier: Modifier = Modifier) {
                     }
                 }
                 item {
-                    AnimatedContent(targetState = isServiceRunning.value) {
+                    AnimatedContent(targetState = settings.service) {
                         if (!it) {
                             Tile("Auto-Login Service: Stopped",
                                 "Login automatically once connected to Wi-Fi.",
@@ -387,7 +386,7 @@ fun Content(modifier: Modifier = Modifier) {
 
                 }
                 item {
-                    if (isQsAdded.value) {
+                    if (settings.qsAdded) {
                         Tile(
                             "Quick Tile added",
                             "Tap it to login, in-case your device decided to kill the service...",
@@ -413,7 +412,7 @@ fun Content(modifier: Modifier = Modifier) {
                                     "Please disable battery optimization for this app.",
                                     Toast.LENGTH_LONG
                                 ).show()
-                                context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+                                context.startActivity(Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
                             })
                     } else {
                         Tile(title = "Disable Battery Optimization",

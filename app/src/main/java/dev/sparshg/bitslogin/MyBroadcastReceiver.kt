@@ -26,19 +26,18 @@ class MyBroadcastReceiver : BroadcastReceiver() {
                 WifiManager.EXTRA_WIFI_STATE, -1
             ) == WifiManager.WIFI_STATE_ENABLED
         ) {
+
+            val settings = runBlocking { Store.getInstance(context).data.first() }
             val pref = context.getSharedPreferences(
                 context.getString(R.string.pref_name), Context.MODE_PRIVATE
             )
-            val username = pref.getString("username", null)
-            val password = pref.getString("password", null)
-            val address = when (runBlocking { Store(context).address.first() }) {
+            val address = when (settings.address) {
                 1 -> "https://campnet.bits-goa.ac.in:8090/login.xml"
                 2 -> "https://172.16.0.30:8090/login.xml"
                 else -> "https://fw.bits-pilani.ac.in:8090/login.xml"
             }
-//            val address = "https://clients3.google.com/generate_204"
-            Log.e("TAG", address)
-            if (username == null || password == null) {
+            Log.e("TAG", "$address ${settings.username} ${settings.password}")
+            if (settings.username == "" || settings.password == "") {
                 val notificationManager =
                     context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                 val notificationChannel = NotificationChannel(
@@ -56,7 +55,6 @@ class MyBroadcastReceiver : BroadcastReceiver() {
                         .setContentText("Please set your username and password in the app")
                         .setSmallIcon(R.drawable.ic_next).build()
                 )
-//                Toast.makeText(this.applicationContext, "Wi-Fi credentials not found", Toast.LENGTH_LONG).show()
                 return
             }
 
@@ -95,8 +93,8 @@ class MyBroadcastReceiver : BroadcastReceiver() {
                 override fun getParams(): Map<String, String> {
                     val params: MutableMap<String, String> = HashMap()
                     params["mode"] = "191"
-                    params["username"] = username
-                    params["password"] = password
+                    params["username"] = settings.username
+                    params["password"] = settings.password
                     params["a"] = System.currentTimeMillis().toString()
                     return params
                 }

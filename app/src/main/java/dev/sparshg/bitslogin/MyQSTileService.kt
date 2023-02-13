@@ -43,10 +43,6 @@ class MyQSTileService : TileService() {
                 "enabled", false
             )
         ) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
-//        Log.e("TAG", "onStartListening: " + VolleySingleton.isEmpty)
-//        qsTile.state = if (VolleySingleton.isEmpty) Tile.STATE_INACTIVE else Tile.STATE_ACTIVE
-
-//    qsTile.icon = state.icon
         qsTile.updateTile()
     }
 
@@ -58,19 +54,18 @@ class MyQSTileService : TileService() {
     // Called when the user taps on your tile in an active or inactive state.
     override fun onClick() {
         super.onClick()
-        val pref = getSharedPreferences(getString(R.string.pref_name), Context.MODE_PRIVATE)
         val context = this
-        val username = pref.getString("username", null)
-        val password = pref.getString("password", null)
-        val address = when (runBlocking { Store(context).address.first() }) {
+        val settings = runBlocking { Store.getInstance(context).data.first() }
+        val pref = getSharedPreferences(getString(R.string.pref_name), Context.MODE_PRIVATE)
+        val address = when (settings.address) {
             1 -> "https://campnet.bits-goa.ac.in:8090/login.xml"
             2 -> "https://172.16.0.30:8090/login.xml"
             else -> "https://fw.bits-pilani.ac.in:8090/login.xml"
         }
 //        val address = "https://clients3.google.com/generate_204"
-        Log.e("TAG", "$address $username $password")
+        Log.e("TAG", "$address ${settings.username} ${settings.password}")
 
-        if (username == null || password == null) {
+        if (settings.username == "" || settings.password == "") {
             val notificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             val notificationChannel = NotificationChannel(
@@ -88,7 +83,6 @@ class MyQSTileService : TileService() {
                     .setContentText("Please set your username and password in the app")
                     .setSmallIcon(R.drawable.ic_next).build()
             )
-//                Toast.makeText(this.applicationContext, "Wi-Fi credentials not found", Toast.LENGTH_LONG).show()
             return
         }
 
@@ -125,8 +119,8 @@ class MyQSTileService : TileService() {
                 override fun getParams(): Map<String, String> {
                     val params: MutableMap<String, String> = HashMap()
                     params["mode"] = "191"
-                    params["username"] = username
-                    params["password"] = password
+                    params["username"] = settings.username
+                    params["password"] = settings.password
                     params["a"] = System.currentTimeMillis().toString()
                     return params
                 }
@@ -163,8 +157,7 @@ class MyQSTileService : TileService() {
                 }
             })
 
-        val isRunning = runBlocking { Store(context).service.first() }
-        if (isRunning) {
+        if (settings.service) {
             try {
                 context.startForegroundService(Intent(context, LoginService::class.java))
             } catch (e: Exception) {
