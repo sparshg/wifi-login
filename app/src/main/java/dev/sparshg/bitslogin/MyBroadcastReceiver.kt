@@ -11,12 +11,9 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.net.wifi.WifiManager
-import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.runtime.currentRecomposeScope
-import androidx.core.content.ContextCompat.getSystemService
 import com.android.volley.*
 import com.android.volley.toolbox.StringRequest
 import kotlinx.coroutines.flow.first
@@ -39,6 +36,7 @@ class MyBroadcastReceiver : BroadcastReceiver() {
                 2 -> "https://172.16.0.30:8090/login.xml"
                 else -> "https://fw.bits-pilani.ac.in:8090/login.xml"
             }
+//            val address = "https://clients3.google.com/generate_204"
             Log.e("TAG", address)
             if (username == null || password == null) {
                 val notificationManager =
@@ -68,10 +66,10 @@ class MyBroadcastReceiver : BroadcastReceiver() {
                 NetworkRequest.Builder().addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
                     .build()
             val editor = pref.edit()
-            val stringRequest: StringRequest = object : StringRequest(Request.Method.POST,
+            val stringRequest: StringRequest = object : StringRequest(Method.POST,
                 address,
                 Response.Listener {
-                    Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Login successfulbr", Toast.LENGTH_SHORT).show()
                     editor.putBoolean("enabled", false).apply()
                     TileService.requestListeningState(
                         context, ComponentName(context, MyQSTileService::class.java)

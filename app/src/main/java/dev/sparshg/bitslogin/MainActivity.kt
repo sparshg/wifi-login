@@ -97,7 +97,6 @@ fun CheckNotifPermission() {
 @OptIn(ExperimentalAnimationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun Content(modifier: Modifier = Modifier) {
-//    Log.e("TAG", "CONTENT")
     val openDialog = remember { mutableStateOf(false) }
     val openDialog2 = remember { mutableStateOf(false) }
     val openDialogF1 = remember { mutableStateOf(false) }
@@ -110,7 +109,6 @@ fun Content(modifier: Modifier = Modifier) {
         ReviewManagerFactory.create(context)
     }
     val reviewInfo = rememberReviewTask(reviewManager)
-//    Log.e("TAG", "reviewInfo: $reviewInfo")
     val scope = rememberCoroutineScope()
     val pm = context.getSystemService(POWER_SERVICE) as PowerManager
     val isIgnoringBatteryOptimizations = remember {

@@ -67,7 +67,8 @@ class MyQSTileService : TileService() {
             2 -> "https://172.16.0.30:8090/login.xml"
             else -> "https://fw.bits-pilani.ac.in:8090/login.xml"
         }
-        Log.e("TAG", address)
+//        val address = "https://clients3.google.com/generate_204"
+        Log.e("TAG", "$address $username $password")
 
         if (username == null || password == null) {
             val notificationManager =
@@ -100,11 +101,12 @@ class MyQSTileService : TileService() {
 
         val stringRequest: StringRequest =
             object : StringRequest(Method.POST, address, Response.Listener {
-                Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Login successfulqs", Toast.LENGTH_SHORT).show()
                 pref.edit().putBoolean("enabled", false).apply()
                 VolleySingleton.isEmpty = true
                 qsTile.state = Tile.STATE_INACTIVE
                 qsTile.updateTile()
+                Log.e("TAG", "Volley Response: $it")
             }, Response.ErrorListener {
 //                    Log.e("TAG", "Volley Error: $it")
                 val e = when (it) {
@@ -152,6 +154,11 @@ class MyQSTileService : TileService() {
                         qsTile.updateTile()
                         connectivityManager.bindProcessToNetwork(network)
                         VolleySingleton.getInstance(context.applicationContext).addToRequestQueue(stringRequest)
+//                        connectivityManager.getNetworkCapabilities(network)?.let {
+//                            if (it.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)) {
+//                                Log.e("TAG", "onAvailable: internet")
+//                            }
+//                        }
                     }
                 }
             })
