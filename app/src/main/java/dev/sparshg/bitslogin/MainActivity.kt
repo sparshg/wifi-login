@@ -38,19 +38,16 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDirection.Companion.Content
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat.*
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.OnLifecycleEvent
 import com.google.accompanist.drawablepainter.rememberDrawablePainter
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
-import com.google.accompanist.permissions.shouldShowRationale
 import com.google.android.play.core.review.ReviewInfo
 import com.google.android.play.core.review.ReviewManager
 import com.google.android.play.core.review.ReviewManagerFactory
@@ -119,11 +116,6 @@ fun Content(modifier: Modifier = Modifier) {
     val pm = context.getSystemService(POWER_SERVICE) as PowerManager
     val isIgnoringBatteryOptimizations = remember {
         mutableStateOf(pm.isIgnoringBatteryOptimizations(context.packageName))
-    }
-    val prefs = remember {
-        context.getSharedPreferences(
-            context.getString(R.string.pref_name), MODE_PRIVATE
-        )
     }
     val uriHandler = LocalUriHandler.current
     if (settings.service) {
@@ -546,7 +538,7 @@ fun Content(modifier: Modifier = Modifier) {
                     })
             }
             BottomAppBar(actions = {
-                IconButton(onClick = { uriHandler.openUri("https://github.com/sparshg/bitslogin") }) {
+                IconButton(onClick = { uriHandler.openUri("https://github.com/sparshg/wifi-login") }) {
                     Image(
                         painter = rememberDrawablePainter(
                             drawable = getDrawable(LocalContext.current, R.drawable.ic_github)

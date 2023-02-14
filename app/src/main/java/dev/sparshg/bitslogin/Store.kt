@@ -4,8 +4,6 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.MultiProcessDataStoreFactory
 import java.io.File
-import kotlin.coroutines.coroutineContext
-import kotlin.reflect.KParameter
 
 class Store(val context: Context) {
 
@@ -18,7 +16,7 @@ class Store(val context: Context) {
                     dataStore = MultiProcessDataStoreFactory.create(
                         serializer = SettingsSerializer(),
                         produceFile = {
-                            File("${context.cacheDir.path}/settings")
+                            File("${context.filesDir.path}/settings")
                         }
                     )
                 }
