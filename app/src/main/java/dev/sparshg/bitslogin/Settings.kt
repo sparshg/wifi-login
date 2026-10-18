@@ -8,5 +8,6 @@ data class Settings(
     val review: Long = System.currentTimeMillis(),
     val address: Int = 0,
     val username: String = "",
-    val password: String = ""
+    val password: String = "",
+    val keepalive: Boolean = true
 )

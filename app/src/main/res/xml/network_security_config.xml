@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Captive portals can only be detected over plain HTTP, and Hyderabad's Sophos portal only takes
+     its login that way. Everything else stays HTTPS-only. -->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">connectivitycheck.gstatic.com</domain>
+        <domain includeSubdomains="false">172.16.0.30</domain>
+    </domain-config>
+</network-security-config>

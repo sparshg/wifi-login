@@ -4,11 +4,8 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import java.io.InputStream
 import java.io.OutputStream
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class SettingsSerializer @Inject constructor() : Serializer<Settings> {
+class SettingsSerializer : Serializer<Settings> {
 
     override val defaultValue: Settings
         get() = Settings()

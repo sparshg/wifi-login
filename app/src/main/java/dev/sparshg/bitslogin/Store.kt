@@ -12,12 +12,11 @@ class Store(val context: Context) {
         private var dataStore: DataStore<Settings>? = null
         fun getInstance(context: Context): DataStore<Settings> {
             dataStore ?: synchronized(this) {
-                dataStore ?: Store(context).also {
+                dataStore ?: run {
+                    val file = File(context.filesDir, "settings") // capture the File, not the (Activity) context
                     dataStore = MultiProcessDataStoreFactory.create(
                         serializer = SettingsSerializer(),
-                        produceFile = {
-                            File("${context.filesDir.path}/settings")
-                        }
+                        produceFile = { file }
                     )
                 }
             }
@@ -64,6 +63,12 @@ class Store(val context: Context) {
     suspend fun setPassword(v: String) {
         dataStore!!.updateData {
             it.copy(password = v)
+        }
+    }
+
+    suspend fun setKeepalive(v: Boolean) {
+        dataStore!!.updateData {
+            it.copy(keepalive = v)
         }
     }
 }

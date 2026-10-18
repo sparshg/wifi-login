@@ -15,3 +15,8 @@
 .cxx
 local.properties
 /app/release/app-release.aab
+
+# Release signing (never commit)
+keystore.properties
+*.jks
+*.keystore
